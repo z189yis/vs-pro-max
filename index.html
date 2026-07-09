@@ -48,7 +48,7 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 </head>
 <body>
 <canvas id="game" tabindex="0"></canvas>
-<div id="hud"><div class="hud-item">🕐 <span id="hud-time">00:00</span></div><div class="hud-item">💀 <span id="hud-kills">0</span></div><div class="hud-item">⭐ Lv.<span id="hud-level">1</span></div><div class="hud-item">❤️ <span id="hud-hp">100</span></div></div>
+<div id="hud"><div class="hud-item">🕐 <span id="hud-time">00:00</span></div><div class="hud-item">💀 <span id="hud-kills">0</span></div><div class="hud-item">⭐ Lv.<span id="hud-level">1</span></div><div class="hud-item">❤️ <span id="hud-hp">100</span></div><div id="hud-weather" class="hud-item" title="天气效果">☀️ 晴朗</div></div>
 <div id="xp-bar-wrap"><div id="xp-bar-fill" style="width:0%"></div></div>
 <div id="weapons-bar"></div>
 <div id="upgrade-overlay"><div id="upgrade-title">⬆ 选择升级</div><div id="upgrade-cards"></div></div>
@@ -84,40 +84,82 @@ resize();window.addEventListener('resize',resize);
 
 // ==================== WEAPONS ====================
 const WDEF={
-magic_missile:{id:'magic_missile',name:'魔法飞弹',icon:'🔮',color:'#66ccff',
+magic_missile:{id:'magic_missile',name:'魔法飞弹',icon:'🔮',color:'#66ccff',element:'arcane',
  descs:['发射 1 枚追踪飞弹','数量+1 · 伤害+2','弹射+1 · 冷却-0.1s','数量+1 · 伤害+2','分裂+1 · 冷却-0.1s','数量+1 · 伤害+4','弹射+2 · 分裂+1','数量+2 · 伤害+6'],
  stats:[{n:1,cd:1.5,d:10,s:300,tr:8,b:0,sp:0,l:2.5},{n:2,cd:1.4,d:12,s:300,tr:8,b:0,sp:0,l:2.5},{n:2,cd:1.3,d:14,s:330,tr:9,b:1,sp:0,l:2.5},{n:3,cd:1.2,d:16,s:330,tr:9,b:1,sp:0,l:2.8},{n:3,cd:1.1,d:18,s:330,tr:10,b:1,sp:1,l:2.8},{n:4,cd:1.0,d:22,s:330,tr:10,b:1,sp:1,l:3},{n:4,cd:0.85,d:26,s:380,tr:11,b:3,sp:2,l:3},{n:6,cd:0.6,d:32,s:380,tr:12,b:3,sp:2,l:3.2}]},
-knife:{id:'knife',name:'飞刀',icon:'🔪',color:'#cccccc',
+knife:{id:'knife',name:'飞刀',icon:'🔪',color:'#cccccc',element:'physical',
  descs:['自动追踪 1 把穿透飞刀','数量+1 · 伤害+2','数量+1 · 速度+15%','数量+1 · 伤害+3','数量+1 · 冷却-0.1s','数量+1 · 伤害+4','数量+2 · 速度+15%','数量+3 · 伤害+5'],
  stats:[{n:1,cd:0.65,d:10,s:420,tr:5,p:99,l:1.5},{n:2,cd:0.6,d:12,s:420,tr:5,p:99,l:1.5},{n:3,cd:0.55,d:15,s:480,tr:6,p:99,l:1.5},{n:4,cd:0.5,d:18,s:480,tr:6,p:99,l:1.6},{n:5,cd:0.4,d:22,s:480,tr:7,p:99,l:1.6},{n:6,cd:0.35,d:26,s:520,tr:7,p:99,l:1.7},{n:8,cd:0.3,d:30,s:520,tr:8,p:99,l:1.7},{n:11,cd:0.22,d:36,s:560,tr:8,p:99,l:1.8}]},
-garlic:{id:'garlic',name:'大蒜',icon:'🧄',color:'#aadd88',
+garlic:{id:'garlic',name:'大蒜',icon:'🧄',color:'#aadd88',element:'nature',
  descs:['范围光环 60px · 3 伤害','半径+10 · 伤害+1','半径+10 · 冷却-0.1s','半径+10 · 伤害+2 · 击退+30','半径+10 · 伤害+2 · 冷却-0.1s','半径+15 · 伤害+2 · 击退+30','半径+15 · 伤害+2 · 冷却-0.1s','半径+20 · 伤害+3 · 击退+40'],
  stats:[{r:60,t:1,d:3,k:50},{r:70,t:0.9,d:4,k:50},{r:80,t:0.8,d:5,k:60},{r:90,t:0.7,d:7,k:90},{r:100,t:0.6,d:9,k:90},{r:115,t:0.5,d:11,k:120},{r:130,t:0.4,d:14,k:120},{r:155,t:0.28,d:18,k:160}]},
-axe:{id:'axe',name:'飞斧',icon:'🪓',color:'#ff8844',
+axe:{id:'axe',name:'飞斧',icon:'🪓',color:'#ff8844',element:'physical',
  descs:['弧形环绕 1 把斧头','数量+1 · 伤害+4','范围+30 · 伤害+4','数量+1 · 转速+15%','伤害+6 · 冷却-0.2s','数量+1 · 范围+30','伤害+8 · 冷却-0.2s','数量+2 · 伤害+12'],
  stats:[{n:1,cd:2.2,d:18,orbitR:130,orbitS:2.5,aoe:35,p:99,l:4},{n:2,cd:2.1,d:22,orbitR:130,orbitS:2.5,aoe:35,p:99,l:4},{n:2,cd:1.9,d:26,orbitR:160,orbitS:2.7,aoe:40,p:99,l:4.5},{n:3,cd:1.8,d:30,orbitR:160,orbitS:3.1,aoe:40,p:99,l:4.5},{n:3,cd:1.6,d:36,orbitR:170,orbitS:3.1,aoe:45,p:99,l:5},{n:4,cd:1.4,d:40,orbitR:190,orbitS:3.4,aoe:48,p:99,l:5},{n:4,cd:1.2,d:48,orbitR:190,orbitS:3.8,aoe:52,p:99,l:5.5},{n:6,cd:0.9,d:58,orbitR:220,orbitS:4.2,aoe:58,p:99,l:5.5}]},
-lightning:{id:'lightning',name:'闪电',icon:'⚡',color:'#ffff44',
+lightning:{id:'lightning',name:'闪电',icon:'⚡',color:'#ffff44',element:'lightning',
  descs:['1道闪电随机打击','闪电+1 · 伤害+4','范围+15 · 冷却-0.3s','闪电+1 · 伤害+4','范围+15 · 冷却-0.3s','闪电+1 · 伤害+6','范围+15 · 冷却-0.3s','闪电+2 · 伤害+12'],
  stats:[{n:1,cd:3,d:25,a:50,l:0.3},{n:2,cd:2.8,d:29,a:50,l:0.3},{n:2,cd:2.5,d:33,a:58,l:0.35},{n:3,cd:2.3,d:37,a:58,l:0.35},{n:3,cd:2.0,d:43,a:66,l:0.4},{n:4,cd:1.8,d:49,a:66,l:0.4},{n:4,cd:1.5,d:56,a:74,l:0.45},{n:6,cd:1.1,d:68,a:82,l:0.45}]},
-lightning_spear:{id:'lightning_spear',name:'闪电矛',icon:'🔱',color:'#88ddff',
+lightning_spear:{id:'lightning_spear',name:'闪电矛',icon:'🔱',color:'#88ddff',element:'lightning',
  descs:['投掷 1 支追踪闪电矛 · 高穿透','闪电矛+1 · 伤害+5','速度+15% · 穿透+1','闪电矛+1 · 伤害+6','伤害+8 · 穿透+2','闪电矛+1 · 速度+15%','伤害+10 · 穿透+2','闪电矛+2 · 伤害+15'],
  stats:[{n:1,cd:1.8,d:22,s:650,p:5,l:1.2,w:6,tr:4},{n:2,cd:1.7,d:27,s:650,p:5,l:1.2,w:6,tr:4.5},{n:2,cd:1.55,d:32,s:748,p:6,l:1.3,w:7,tr:5},{n:3,cd:1.4,d:38,s:748,p:6,l:1.3,w:7,tr:5.5},{n:3,cd:1.25,d:46,s:748,p:8,l:1.4,w:8,tr:6},{n:4,cd:1.1,d:54,s:860,p:8,l:1.4,w:8,tr:7},{n:4,cd:0.95,d:64,s:860,p:10,l:1.5,w:9,tr:8},{n:6,cd:0.75,d:79,s:990,p:10,l:1.5,w:10,tr:10}]},
-ice_shard:{id:'ice_shard',name:'冰凌',icon:'❄️',color:'#88ccff',
+ice_shard:{id:'ice_shard',name:'冰凌',icon:'❄️',color:'#88ccff',element:'ice',
  descs:['自动追踪 1 枚冰凌·锥形溅射','数量+1 · 伤害+2','锥形范围+20 · 减速+10%','数量+1 · 伤害+3','锥形角度+15° · 冷却-0.2s','数量+1 · 伤害+4','减速+15% · 锥形范围+20','数量+2 · 伤害+5 · 冷却-0.3s'],
  stats:[{n:1,cd:1.8,d:14,coneR:80,coneA:60,slow:0.3,slowT:1.5,aoeDmg:0.4,s:380,tr:8,l:2.5},{n:2,cd:1.7,d:16,coneR:80,coneA:60,slow:0.3,slowT:1.5,aoeDmg:0.4,s:380,tr:9,l:2.5},{n:2,cd:1.6,d:18,coneR:100,coneA:60,slow:0.4,slowT:1.8,aoeDmg:0.45,s:400,tr:9,l:2.8},{n:3,cd:1.5,d:21,coneR:100,coneA:60,slow:0.4,slowT:1.8,aoeDmg:0.45,s:400,tr:10,l:2.8},{n:3,cd:1.3,d:24,coneR:110,coneA:75,slow:0.45,slowT:2.0,aoeDmg:0.5,s:420,tr:10,l:3},{n:4,cd:1.2,d:28,coneR:110,coneA:75,slow:0.45,slowT:2.0,aoeDmg:0.5,s:420,tr:11,l:3},{n:4,cd:1.0,d:33,coneR:130,coneA:80,slow:0.55,slowT:2.2,aoeDmg:0.55,s:440,tr:11,l:3.2},{n:6,cd:0.7,d:40,coneR:130,coneA:80,slow:0.6,slowT:2.5,aoeDmg:0.6,s:440,tr:12,l:3.2}]},
-fireball:{id:'fireball',name:'火球',icon:'🔥',color:'#ff6622',
+fireball:{id:'fireball',name:'火球',icon:'🔥',color:'#ff6622',element:'fire',
  descs:['追踪火球·范围爆炸·点燃','爆炸范围+15 · 灼烧+2/s','直接伤害+5 · 冷却-0.3s','数量+1 · 爆炸范围+15','灼烧+3/s · 持续+1s','直接伤害+8 · 冷却-0.3s','数量+1 · 爆炸范围+20','数量+2 · 伤害+12 · 灼烧+5/s'],
  stats:[{n:1,cd:2.5,d:25,aoe:60,burn:5,burnT:3,s:220,tr:5,l:3},{n:1,cd:2.3,d:27,aoe:75,burn:7,burnT:3,s:230,tr:5,l:3},{n:1,cd:2.0,d:32,aoe:75,burn:7,burnT:3.5,s:240,tr:6,l:3},{n:2,cd:1.9,d:34,aoe:90,burn:8,burnT:3.5,s:250,tr:6,l:3.2},{n:2,cd:1.7,d:37,aoe:90,burn:11,burnT:4.5,s:260,tr:7,l:3.2},{n:2,cd:1.4,d:45,aoe:100,burn:11,burnT:4.5,s:270,tr:7,l:3.5},{n:3,cd:1.2,d:50,aoe:120,burn:14,burnT:5,s:280,tr:8,l:3.5},{n:5,cd:0.9,d:62,aoe:120,burn:19,burnT:5,s:300,tr:9,l:3.5}]}
 };
 const PASSIVES=[{id:'maxHp',name:'生命力',icon:'❤️',desc:'+30 最大生命值',a:p=>p.maxHp+=30},{id:'speed',name:'迅捷',icon:'💨',desc:'+12% 移动速度',a:p=>p.speed*=1.12},{id:'damage',name:'力量',icon:'💪',desc:'+12% 伤害',a:p=>p.dmgMult*=1.12},{id:'cooldown',name:'急速',icon:'⏩',desc:'-8% 冷却',a:p=>p.cdMult*=0.92},{id:'magnet',name:'磁铁',icon:'🧲',desc:'+30 拾取范围',a:p=>p.magnetRange+=30}];
 
+// ==================== ELEMENTS ====================
+const ELEMENTS={fire:{name:'火',icon:'🔥',color:'#ff6622'},ice:{name:'冰',icon:'❄️',color:'#88ccff'},lightning:{name:'雷',icon:'⚡',color:'#ffff44'},water:{name:'水',icon:'💧',color:'#44aaff'},nature:{name:'自然',icon:'🌿',color:'#aadd88'},physical:{name:'物理',icon:'⚔️',color:'#cccccc'},arcane:{name:'奥术',icon:'✨',color:'#66ccff'}};
+const ELEMENT_STATUS_DURATION={fire:3,ice:2.5,lightning:2,water:5};
+const ELEMENT_REACTIONS={
+ 'fire+ice':{name:'融化',mult:2.0,knockback:0,aoe:0,particles:'steam'},
+ 'ice+fire':{name:'蒸发',mult:2.5,knockback:30,aoe:60,particles:'fire'},
+ 'water+lightning':{name:'感电',mult:0.8,chain:80,particles:'spark'},
+ 'lightning+water':{name:'电解',mult:1.8,spread:120,particles:'spark'},
+ 'fire+lightning':{name:'超载',mult:1.5,knockback:120,aoe:100,particles:'explosion'},
+ 'ice+lightning':{name:'超导',mult:1.3,armorBreak:3,aoe:90,particles:'ice'}
+};
+const WEATHER_TYPES={
+ clear:{id:'clear',name:'晴朗',icon:'☀️',desc:'无特殊效果'},
+ rain:{id:'rain',name:'雨天',icon:'🌧️',desc:'火伤-15% 雷伤+20%'},
+ thunder:{id:'thunder',name:'雷暴',icon:'⛈️',desc:'雷系冷却-20%'},
+ drought:{id:'drought',name:'干旱',icon:'🌵',desc:'火伤+25%'},
+ snowstorm:{id:'snowstorm',name:'暴风雪',icon:'🌨️',desc:'冰伤+20% 怪物减速'}
+};
+function getWeatherDuration(){return rng(50,90);}
+
 // ==================== STATE ====================
 const player={x:0,y:0,hp:100,maxHp:100,speed:220,level:1,xp:0,xpToNext:8,facingAngle:0,angle:0,dmgMult:1,cdMult:1,magnetRange:100,weapons:[],iframes:0,alive:true};
 let gameState='title',gameTime=0,kills=0,screenShake=0,shakeX=0,shakeY=0,bossTimer=0,firstBossSpawned=!1,spawnTimer=0;
-let enemies=[],projectiles=[],xpGems=[],particles=[],dmgNumbers=[],lightningEffects=[],garlicAuraAlpha=[],fireExplosions=[],coneEffects=[];
+let enemies=[],projectiles=[],xpGems=[],particles=[],dmgNumbers=[],lightningEffects=[],garlicAuraAlpha=[],fireExplosions=[],coneEffects=[],reactionEffects=[];
 let lastTime=0;
+let currentWeather=WEATHER_TYPES.clear,weatherTimer=0,weatherDuration=getWeatherDuration(),weatherAnnounceTimer=0;
 
-// ==================== HELPERS ====================
+function updateWeather(dt){
+ weatherTimer+=dt;
+ if(weatherAnnounceTimer>0)weatherAnnounceTimer-=dt;
+ if(weatherTimer>=weatherDuration){
+  let ids=Object.keys(WEATHER_TYPES),next=ids[Math.floor(Math.random()*ids.length)];
+  currentWeather=WEATHER_TYPES[next];weatherTimer=0;weatherDuration=getWeatherDuration();weatherAnnounceTimer=4;
+ }
+ if(currentWeather.id==='rain'){for(let e of enemies){if(e._dead)continue;if(Math.random()<dt*0.08)e.status='water';}}
+}
+function getElementalDamageMult(element){
+ if(!element||element==='physical'||element==='arcane'||element==='nature')return 1;
+ let w=currentWeather.id;
+ if(element==='fire')return w==='drought'?1.25:(w==='rain'?0.85:1);
+ if(element==='ice')return w==='snowstorm'?1.2:1;
+ if(element==='lightning')return w==='rain'?1.2:(w==='thunder'?1.15:1);
+ if(element==='water')return w==='drought'?0.8:(w==='rain'?1.1:1);
+ return 1;
+}
+function getElementalCdMult(element){
+ if(element==='lightning'&&currentWeather.id==='thunder')return 0.8;
+ return 1;
+}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function rng(a,b){return Math.random()*(b-a)+a}
 function irng(a,b){return Math.floor(rng(a,b+1))}
@@ -149,13 +191,60 @@ window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=!1;e.preventDefaul
 
 // ==================== ENEMIES ====================
 const ET={bat:{name:'蝙蝠',hp:15,spd:100,dmg:8,size:12,color:'#cc4444',xp:1},fast:{name:'疾行',hp:10,spd:220,dmg:6,size:10,color:'#ddaa44',xp:1},tank:{name:'巨兽',hp:60,spd:55,dmg:15,size:20,color:'#448844',xp:2},boss:{name:'BOSS',hp:300,spd:40,dmg:25,size:38,color:'#aa44ff',xp:8}};
-function spawnEnemy(type='bat',ad=null){let dr=ad||rng(600,850),a=randAngle(),x=player.x+Math.cos(a)*dr,y=player.y+Math.sin(a)*dr,td=ET[type],t=gameTime,hs=1+t/300;if(t>300)hs+=Math.pow((t-300)/120,1.5);enemies.push({x,y,type,hp:td.hp*hs,maxHp:td.hp*hs,spd:td.spd*(1+t/600),dmg:td.dmg,size:td.size,color:td.color,xpVal:td.xp,hitFlash:0,knockback:{vx:0,vy:0},slowAmount:0,slowTimer:0,burnDmg:0,burnTimer:0})}
+function spawnEnemy(type='bat',ad=null){let dr=ad||rng(600,850),a=randAngle(),x=player.x+Math.cos(a)*dr,y=player.y+Math.sin(a)*dr,td=ET[type],t=gameTime,hs=1+t/300;if(t>300)hs+=Math.pow((t-300)/120,1.5);
+ let roll=Math.random(),ele='physical';
+ if(currentWeather.id==='rain'){if(roll<0.55)ele='water';else if(roll<0.75)ele='ice';else if(roll<0.85)ele='lightning'}
+ else if(currentWeather.id==='drought'){if(roll<0.5)ele='fire';else if(roll<0.7)ele='physical'}
+ else if(currentWeather.id==='snowstorm'){if(roll<0.5)ele='ice';else if(roll<0.7)ele='water'}
+ else if(currentWeather.id==='thunder'){if(roll<0.45)ele='lightning';else if(roll<0.65)ele='water'}
+ else{if(roll<0.5)ele='physical';else if(roll<0.7)ele='fire';else if(roll<0.82)ele='ice';else if(roll<0.92)ele='lightning';else ele='water'}
+ let resist=ele,weak=ele==='fire'?'ice':ele==='ice'?'fire':ele==='water'?'lightning':ele==='lightning'?'fire':'nature';
+ if(Math.random()<0.25){let elems=['fire','ice','lightning','water'];weak=elems[Math.floor(Math.random()*elems.length)]}
+ enemies.push({x,y,type,hp:td.hp*hs,maxHp:td.hp*hs,spd:td.spd*(1+t/600),dmg:td.dmg,size:td.size,color:td.color,xpVal:td.xp,hitFlash:0,knockback:{vx:0,vy:0},slowAmount:0,slowTimer:0,burnDmg:0,burnTimer:0,element:ele,resist:resist,weakness:weak,status:null,statusTimer:0,defenseDown:0,stun:0})}
 function spawnWave(){let t=gameTime,count=2+Math.floor(t/15);for(let i=0;i<count;i++){let type='bat',r=Math.random();if(t>40&&r<0.3)type='fast';if(t>80&&r<0.15)type='tank';if(t>100&&r<0.08)type='tank';spawnEnemy(type)}}
 function spawnBoss(){spawnEnemy('boss',rng(700,900));screenShake=12;sfxBossSpawn();addParticle(player.x,player.y,'#aa44ff',30,200,0.8,6)}
 
 // ==================== DAMAGE / DEATH ====================
 function handleEnemyDeath(e){if(e.hp>0)return;e._dead=!0;kills++;sfxKill();addParticle(e.x,e.y,e.color,8,100,0.4,4);let gc=e.type==='boss'?8:(e.type==='tank'?3:1);for(let i=0;i<gc;i++){let gv=e.type==='boss'?3:1;xpGems.push({x:e.x+rng(-15,15),y:e.y+rng(-15,15),value:gv,life:30,bobOff:Math.random()*Math.PI*2})}}
-function dealDmg(e,dmg,proj,color){e.hp-=dmg;e.hitFlash=0.08;addDmgNumber(e.x+rng(-8,8),e.y+rng(-8,8),dmg,color||proj?.color||'#ffffff');if(proj&&proj.pierce!==undefined){proj.pierce--;if(proj.pierce<0)proj._remove=!0}if(e.hp<=0)handleEnemyDeath(e)}
+function dealDmg(e,dmg,proj,color,element){
+ let el=element||(proj?.element)||null;
+ let fd=calcDamage(e,dmg,el);
+ e.hp-=fd;e.hitFlash=0.08;addDmgNumber(e.x+rng(-8,8),e.y+rng(-8,8),fd,color||proj?.color||'#ffffff');
+ if(el)applyElement(e,el,fd,proj);
+ if(proj&&proj.pierce!==undefined){proj.pierce--;if(proj.pierce<0)proj._remove=!0}if(e.hp<=0)handleEnemyDeath(e)}
+function applyElement(e,element,dmg,sourceProj){
+ if(!element||element==='physical'||element==='arcane'||element==='nature'||e._dead)return;
+ if(e.status&&e.status!==element){
+  let key=e.status+'+'+element,rx=ELEMENT_REACTIONS[key];
+  if(rx){
+   let rd=dmg*rx.mult;
+   e.hp-=rd;addDmgNumber(e.x+rng(-8,8),e.y+rng(-8,8),rd,ELEMENTS[element]?.color||'#fff');
+   reactionEffects.push({x:e.x,y:e.y,life:0.6,maxLife:0.6,name:rx.name,particles:rx.particles});
+   sfxReaction(rx.particles);screenShake=Math.max(screenShake,2);
+   if(rx.knockback){let ka=Math.atan2(e.y-(sourceProj?sourceProj.y:player.y),e.x-(sourceProj?sourceProj.x:player.x));e.knockback.vx+=Math.cos(ka)*rx.knockback;e.knockback.vy+=Math.sin(ka)*rx.knockback}
+   if(rx.aoe){for(let e2 of enemies){if(e2._dead||e2===e)continue;if(dist(e,e2)<rx.aoe+e2.size){dealDmg(e2,rd*0.6,null,ELEMENTS[element]?.color);applyElement(e2,element,rd*0.6,null)}}}
+   if(rx.chain){for(let e2 of enemies){if(e2._dead||e2===e)continue;if(dist(e,e2)<rx.chain){dealDmg(e2,rd,null,'#ffff44');e2.stun=Math.max(e2.stun,0.5);lightningEffects.push({x:e2.x,y:e2.y,life:0.25,maxLife:0.25,aoe:30,dmg:0,segments:[{x:e.x,y:e.y},{x:e2.x,y:e2.y}]})}}}
+   if(rx.spread){let near=enemies.filter(en=>!en._dead&&en!==e&&dist(e,en)<rx.spread);for(let e2 of near){e2.status='lightning';e2.statusTimer=ELEMENT_STATUS_DURATION.lightning;}}
+   if(rx.armorBreak){e.defenseDown=Math.max(e.defenseDown,rx.armorBreak);for(let e2 of enemies){if(e2._dead||e2===e)continue;if(dist(e,e2)<rx.aoe+e2.size){dealDmg(e2,rd*0.5,null,'#88ccff')}}}
+   e.status=null;e.statusTimer=0;if(e.hp<=0)handleEnemyDeath(e);return;
+  }
+ }
+ e.status=element;e.statusTimer=ELEMENT_STATUS_DURATION[element]||2;
+}
+function sfxReaction(type){
+ if(type==='explosion'){beep(80,0.25,'sawtooth',0.12,-40);setTimeout(()=>beep(200,0.15,'square',0.08),80)}
+ else if(type==='steam'){beep(400,0.2,'sine',0.07,-200)}
+ else if(type==='spark'){beep(1200,0.08,'square',0.06);setTimeout(()=>beep(1800,0.06,'square',0.05),60)}
+ else if(type==='ice'){beep(300,0.15,'sine',0.07,-150);sfxIce()}
+ else if(type==='fire'){sfxFire()}
+}
+function calcDamage(e,dmg,element){
+ let d=dmg;
+ if(element&&e.defenseDown>0)d*=1.3;
+ let em=getElementalDamageMult(element);
+ if(element===e.resist)em*=0.7;else if(element===e.weakness)em*=1.3;
+ return d*em;
+}
 
 // ==================== WEAPON UTILS ====================
 function ws(w){let d=WDEF[w.id];return d.stats[clamp(w.level-1,0,7)]}
@@ -164,22 +253,22 @@ function ws(w){let d=WDEF[w.id];return d.stats[clamp(w.level-1,0,7)]}
 function getUpgradeOptions(){let o=[];for(let w of player.weapons){if(w.level<8)o.push({type:'weapon',weaponId:w.id})}let oids=new Set(player.weapons.map(w=>w.id));for(let[id]of Object.entries(WDEF)){if(!oids.has(id)&&player.weapons.length<7)o.push({type:'new_weapon',weaponId:id})}for(let p of PASSIVES)o.push({type:'passive',passiveId:p.id});for(let i=o.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]]}let wo=o.filter(x=>x.type==='weapon'||x.type==='new_weapon'),po=o.filter(x=>x.type==='passive'),r=[];r.push(...wo.slice(0,3));while(r.length<4){let x=po[Math.floor(Math.random()*po.length)];if(!r.includes(x))r.push(x);else r.push(po[Math.floor(Math.random()*po.length)])}let seen=new Set,final=[];for(let x of r){let k=x.type+'_'+(x.weaponId||x.passiveId);if(!seen.has(k)){seen.add(k);final.push(x)}}while(final.length<4&&po.length>0){final.push(po[Math.floor(Math.random()*po.length)]);if(final.length>4)break}return final.slice(0,4)}
 function showUpgradePanel(){gameState='levelup';let options=getUpgradeOptions(),c=document.getElementById('upgrade-cards');c.innerHTML='';document.getElementById('upgrade-overlay').classList.add('active');for(let o of options){let card=document.createElement('div');card.className='upgrade-card';let icon,name,desc,ls;if(o.type==='weapon'){let w=player.weapons.find(w=>w.id===o.weaponId),d=WDEF[o.weaponId];icon=d.icon;name=d.name;ls=`Lv.${w.level} → Lv.${w.level+1}`;desc=d.descs[w.level]}else if(o.type==='new_weapon'){let d=WDEF[o.weaponId];icon=d.icon;name=d.name;ls='<span class="card-new">NEW</span>';desc=d.descs[0]}else{let p=PASSIVES.find(p=>p.id===o.passiveId);icon=p.icon;name=p.name;ls='被动';desc=p.desc}card.innerHTML=`<div class="card-icon">${icon}</div><div class="card-name">${name}</div><div class="card-level">${ls}</div><div class="card-desc">${desc}</div>`;card.addEventListener('click',()=>applyUpgrade(o));c.appendChild(card)}}
 function applyUpgrade(o){if(o.type==='weapon'){let w=player.weapons.find(w=>w.id===o.weaponId);w.level++;w._timer=0}else if(o.type==='new_weapon'){player.weapons.push({id:o.weaponId,level:1,_timer:0})}else{let p=PASSIVES.find(p=>p.id===o.passiveId);p.a(player)}document.getElementById('upgrade-overlay').classList.remove('active');gameState='postupgrade';lastTime=0;updateWeaponsBar()}
-function updateHUD(){let m=Math.floor(gameTime/60),s=Math.floor(gameTime%60);document.getElementById('hud-time').textContent=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;document.getElementById('hud-kills').textContent=kills;document.getElementById('hud-level').textContent=player.level;document.getElementById('hud-hp').textContent=Math.max(0,Math.round(player.hp));document.getElementById('xp-bar-fill').style.width=Math.min(100,(player.xp/player.xpToNext)*100)+'%'}
+function updateHUD(){let m=Math.floor(gameTime/60),s=Math.floor(gameTime%60);document.getElementById('hud-time').textContent=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;document.getElementById('hud-kills').textContent=kills;document.getElementById('hud-level').textContent=player.level;document.getElementById('hud-hp').textContent=Math.max(0,Math.round(player.hp));document.getElementById('xp-bar-fill').style.width=Math.min(100,(player.xp/player.xpToNext)*100)+'%';let hw=document.getElementById('hud-weather');if(hw){hw.textContent=`${currentWeather.icon} ${currentWeather.name}`;hw.title=`${currentWeather.name}：${currentWeather.desc}`;if(weatherAnnounceTimer>0){hw.style.borderColor='#ffcc44';hw.style.boxShadow='0 0 10px rgba(255,200,50,0.5)'}else{hw.style.borderColor='rgba(255,255,255,0.1)';hw.style.boxShadow='none'}}}
 function updateWeaponsBar(){let b=document.getElementById('weapons-bar');b.innerHTML='';for(let w of player.weapons){let d=WDEF[w.id],el=document.createElement('div');el.className='weapon-icon';el.innerHTML=`${d.icon}<span class="lv">${w.level}</span>`;el.title=`${d.name} Lv.${w.level}`;b.appendChild(el)}}
 function showGameOver(){gameState='gameover';document.getElementById('go-time').textContent=document.getElementById('hud-time').textContent;document.getElementById('go-kills').textContent=kills;document.getElementById('go-level').textContent=player.level;document.getElementById('game-over').classList.add('active');sfxGameOver()}
-function restartGame(){player.x=0;player.y=0;player.hp=100;player.maxHp=100;player.speed=220;player.level=1;player.xp=0;player.xpToNext=8;player.facingAngle=0;player.angle=0;player.dmgMult=1;player.cdMult=1;player.magnetRange=100;player.weapons=[{id:'magic_missile',level:1,_timer:0}];player.iframes=0;player.alive=!0;gameTime=0;kills=0;screenShake=0;bossTimer=0;firstBossSpawned=!1;spawnTimer=0;enemies.length=0;projectiles.length=0;xpGems.length=0;particles.length=0;dmgNumbers.length=0;lightningEffects.length=0;garlicAuraAlpha.length=0;fireExplosions.length=0;coneEffects.length=0;camera.x=0;camera.y=0;document.getElementById('game-over').classList.remove('active');document.getElementById('upgrade-overlay').classList.remove('active');document.getElementById('title-screen').style.display='none';updateWeaponsBar();updateHUD();gameState='playing';lastTime=0;canvas.focus()}
+function restartGame(){player.x=0;player.y=0;player.hp=100;player.maxHp=100;player.speed=220;player.level=1;player.xp=0;player.xpToNext=8;player.facingAngle=0;player.angle=0;player.dmgMult=1;player.cdMult=1;player.magnetRange=100;player.weapons=[{id:'magic_missile',level:1,_timer:0}];player.iframes=0;player.alive=!0;gameTime=0;kills=0;screenShake=0;bossTimer=0;firstBossSpawned=!1;spawnTimer=0;enemies.length=0;projectiles.length=0;xpGems.length=0;particles.length=0;dmgNumbers.length=0;lightningEffects.length=0;garlicAuraAlpha.length=0;fireExplosions.length=0;coneEffects.length=0;reactionEffects.length=0;camera.x=0;camera.y=0;currentWeather=WEATHER_TYPES.clear;weatherTimer=0;weatherDuration=getWeatherDuration();weatherAnnounceTimer=0;document.getElementById('game-over').classList.remove('active');document.getElementById('upgrade-overlay').classList.remove('active');document.getElementById('title-screen').style.display='none';updateWeaponsBar();updateHUD();gameState='playing';lastTime=0;canvas.focus()}
 
 // ==================== FIRE WEAPON ====================
 function fireWeapon(weapon){let s=ws(weapon),pd=s.d*player.dmgMult,pcd=s.cd*player.cdMult;
  switch(weapon.id){
- case'magic_missile':sfxShoot();for(let i=0;i<s.n;i++){let oa=randAngle();projectiles.push({x:player.x+Math.cos(oa)*20,y:player.y+Math.sin(oa)*20,vx:0,vy:0,spd:s.s,angle:oa,turnRate:s.tr,dmg:pd,bounces:s.b,splits:s.sp,pierce:0,life:s.l,type:'missile',color:'#66ccff',size:5,target:null,trail:[],hit:[],bounceUsed:0})}break;
- case'knife':sfxKnife();for(let i=0;i<s.n;i++){let oa=randAngle();projectiles.push({x:player.x+Math.cos(oa)*22,y:player.y+Math.sin(oa)*22,vx:0,vy:0,spd:s.s,angle:oa,turnRate:s.tr,dmg:pd,pierce:s.p,life:s.l,type:'knife',color:'#eeeeee',size:4,target:null,trail:[]})}break;
+ case'magic_missile':sfxShoot();for(let i=0;i<s.n;i++){let oa=randAngle();projectiles.push({x:player.x+Math.cos(oa)*20,y:player.y+Math.sin(oa)*20,vx:0,vy:0,spd:s.s,angle:oa,turnRate:s.tr,dmg:pd,bounces:s.b,splits:s.sp,pierce:0,life:s.l,type:'missile',element:'arcane',color:'#66ccff',size:5,target:null,trail:[],hit:[],bounceUsed:0})}break;
+ case'knife':sfxKnife();for(let i=0;i<s.n;i++){let oa=randAngle();projectiles.push({x:player.x+Math.cos(oa)*22,y:player.y+Math.sin(oa)*22,vx:0,vy:0,spd:s.s,angle:oa,turnRate:s.tr,dmg:pd,pierce:s.p,life:s.l,type:'knife',element:'physical',color:'#eeeeee',size:4,target:null,trail:[]})}break;
  case'garlic':break;
- case'axe':sfxAxe();for(let i=0;i<s.n;i++){let phase=(i/s.n)*Math.PI*2;projectiles.push({x:player.x,y:player.y,phase,orbitR:s.orbitR,orbitS:s.orbitS,dmg:pd,pierce:s.p,life:s.l,type:'axe',color:'#ff8844',size:8,aoe:s.aoe,trail:[],angle:0,spinSpeed:10})}break;
- case'lightning':sfxLightning();let alive=enemies.filter(e=>onScreen(e.x,e.y,0)),targets=[],pool=[...alive];for(let i=0;i<Math.min(s.n,pool.length);i++){let idx=irng(0,pool.length-1);targets.push(pool.splice(idx,1)[0])}while(targets.length<s.n){targets.push({x:player.x+rng(-350,350),y:player.y+rng(-350,350),hp:0,maxHp:1,dmg:0,size:5,color:'#fff',xpVal:0,type:'dummy',spd:0,hitFlash:0,knockback:{vx:0,vy:0},slowAmount:0,slowTimer:0,burnDmg:0,burnTimer:0})}for(let t of targets){let segs=[],sy2=t.y-300,cx=t.x,cy=sy2,steps=10;for(let s2=0;s2<steps;s2++){let frac=s2/steps,ny=sy2+(t.y-sy2)*frac,nx=t.x+(Math.random()-0.5)*80*(1-frac*0.7);segs.push({x:nx,y:ny})}segs.push({x:t.x,y:t.y});lightningEffects.push({x:t.x,y:t.y,life:s.l,maxLife:s.l,aoe:s.a,dmg:pd,segments:segs})}screenShake=Math.max(screenShake,3);break;
- case'lightning_spear':sfxLightningSpear();{let alive2=enemies.filter(e=>!e._dead);alive2.sort((a,b)=>dist(player,a)-dist(player,b));let tgs=[];for(let i=0;i<Math.min(s.n,alive2.length);i++)tgs.push(alive2[i]);while(tgs.length<s.n)tgs.push(null);for(let t of tgs){let a2=t?Math.atan2(t.y-player.y,t.x-player.x):randAngle(),so=rng(0,12);projectiles.push({x:player.x+Math.cos(a2)*(24+so),y:player.y+Math.sin(a2)*(24+so),vx:Math.cos(a2)*s.s,vy:Math.sin(a2)*s.s,angle:a2,turnRate:s.tr,spd:s.s,dmg:pd,pierce:s.p,life:s.l,type:'lspear',color:'#88ddff',size:s.w,trail:[],sparkTimer:0})}}break;
- case'ice_shard':sfxIce();for(let i=0;i<s.n;i++){let oa=randAngle();projectiles.push({x:player.x+Math.cos(oa)*18,y:player.y+Math.sin(oa)*18,vx:0,vy:0,spd:s.s,angle:oa,turnRate:s.tr,dmg:pd,coneR:s.coneR,coneA:s.coneA,slow:s.slow,slowT:s.slowT,aoeDmg:s.aoeDmg,life:s.l,type:'ice',color:'#88ccff',size:5,target:null,trail:[],hit:[]})}break;
- case'fireball':sfxFire();for(let i=0;i<s.n;i++){let oa=randAngle();projectiles.push({x:player.x+Math.cos(oa)*16,y:player.y+Math.sin(oa)*16,vx:0,vy:0,spd:s.s,angle:oa,turnRate:s.tr,dmg:pd,aoe:s.aoe,burn:s.burn,burnT:s.burnT,life:s.l,type:'fire',color:'#ff6622',size:7,target:null,trail:[],_exploded:!1})}break;
+ case'axe':sfxAxe();for(let i=0;i<s.n;i++){let phase=(i/s.n)*Math.PI*2;projectiles.push({x:player.x,y:player.y,phase,orbitR:s.orbitR,orbitS:s.orbitS,dmg:pd,pierce:s.p,life:s.l,type:'axe',element:'physical',color:'#ff8844',size:8,aoe:s.aoe,trail:[],angle:0,spinSpeed:10})}break;
+ case'lightning':sfxLightning();let alive=enemies.filter(e=>onScreen(e.x,e.y,0)),targets=[],pool=[...alive];for(let i=0;i<Math.min(s.n,pool.length);i++){let idx=irng(0,pool.length-1);targets.push(pool.splice(idx,1)[0])}while(targets.length<s.n){targets.push({x:player.x+rng(-350,350),y:player.y+rng(-350,350),hp:0,maxHp:1,dmg:0,size:5,color:'#fff',xpVal:0,type:'dummy',spd:0,hitFlash:0,knockback:{vx:0,vy:0},slowAmount:0,slowTimer:0,burnDmg:0,burnTimer:0})}for(let t of targets){let segs=[],sy2=t.y-300,cx=t.x,cy=sy2,steps=10;for(let s2=0;s2<steps;s2++){let frac=s2/steps,ny=sy2+(t.y-sy2)*frac,nx=t.x+(Math.random()-0.5)*80*(1-frac*0.7);segs.push({x:nx,y:ny})}segs.push({x:t.x,y:t.y});lightningEffects.push({x:t.x,y:t.y,life:s.l,maxLife:s.l,aoe:s.a,dmg:pd,element:'lightning',segments:segs})}screenShake=Math.max(screenShake,3);break;
+ case'lightning_spear':sfxLightningSpear();{let alive2=enemies.filter(e=>!e._dead);alive2.sort((a,b)=>dist(player,a)-dist(player,b));let tgs=[];for(let i=0;i<Math.min(s.n,alive2.length);i++)tgs.push(alive2[i]);while(tgs.length<s.n)tgs.push(null);for(let t of tgs){let a2=t?Math.atan2(t.y-player.y,t.x-player.x):randAngle(),so=rng(0,12);projectiles.push({x:player.x+Math.cos(a2)*(24+so),y:player.y+Math.sin(a2)*(24+so),vx:Math.cos(a2)*s.s,vy:Math.sin(a2)*s.s,angle:a2,turnRate:s.tr,spd:s.s,dmg:pd,pierce:s.p,life:s.l,type:'lspear',element:'lightning',color:'#88ddff',size:s.w,trail:[],sparkTimer:0})}}break;
+ case'ice_shard':sfxIce();for(let i=0;i<s.n;i++){let oa=randAngle();projectiles.push({x:player.x+Math.cos(oa)*18,y:player.y+Math.sin(oa)*18,vx:0,vy:0,spd:s.s,angle:oa,turnRate:s.tr,dmg:pd,coneR:s.coneR,coneA:s.coneA,slow:s.slow,slowT:s.slowT,aoeDmg:s.aoeDmg,life:s.l,type:'ice',element:'ice',color:'#88ccff',size:5,target:null,trail:[],hit:[]})}break;
+ case'fireball':sfxFire();for(let i=0;i<s.n;i++){let oa=randAngle();projectiles.push({x:player.x+Math.cos(oa)*16,y:player.y+Math.sin(oa)*16,vx:0,vy:0,spd:s.s,angle:oa,turnRate:s.tr,dmg:pd,aoe:s.aoe,burn:s.burn,burnT:s.burnT,life:s.l,type:'fire',element:'fire',color:'#ff6622',size:7,target:null,trail:[],_exploded:!1})}break;
 }}
 
 // ==================== GARLIC AURA ====================
@@ -198,11 +287,16 @@ function update(dt){if(gameState==='levelup'||gameState==='gameover'||gameState=
  if(player.iframes>0)player.iframes-=dt;
  camera.x=lerp(camera.x,player.x-W/2,8*dt);camera.y=lerp(camera.y,player.y-H/2,8*dt);
  if(screenShake>0){shakeX=(Math.random()-0.5)*screenShake;shakeY=(Math.random()-0.5)*screenShake;screenShake=Math.max(0,screenShake-dt*25)}else{shakeX=0;shakeY=0}
+ updateWeather(dt);
  // Spawning
  spawnTimer+=dt;let si=Math.max(0.3,3.0-gameTime/180);if(spawnTimer>=si&&enemies.length<250){spawnTimer=0;spawnWave()}
  bossTimer+=dt;let bi=firstBossSpawned?60:120;if(bossTimer>=bi){bossTimer=0;firstBossSpawned=!0;spawnBoss()}
  // Enemies
- for(let e of enemies){if(e._dead)continue;let dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy)||0.001,bs=d<180?100:e.spd,spd=bs*(1+gameTime/400);if(e.slowTimer>0){spd*=(1-e.slowAmount);e.slowTimer-=dt;if(e.slowTimer<=0)e.slowAmount=0}if(e.burnTimer>0){e.hp-=e.burnDmg*dt;e.burnTimer-=dt;e.hitFlash=0.04;if(e.hp<=0)handleEnemyDeath(e)}e.x+=(dx/d)*spd*dt+e.knockback.vx*dt;e.y+=(dy/d)*spd*dt+e.knockback.vy*dt;e.knockback.vx*=Math.exp(-8*dt);e.knockback.vy*=Math.exp(-8*dt);if(e.hitFlash>0)e.hitFlash-=dt;if(e.burnTimer>0&&Math.random()<dt*8)particles.push({x:e.x+rng(-8,8),y:e.y+rng(-8,8),vx:rng(-20,20),vy:rng(-40,-10),color:'#ff6622',life:0.4,maxLife:0.4,size:rng(2,5)});if(player.iframes<=0&&dist(player,e)<12+e.size){player.hp-=e.dmg;player.iframes=0.4;screenShake=Math.max(screenShake,5);sfxPlayerHit();addParticle(player.x,player.y,'#ff4444',6,60,0.3,3);let pa=Math.atan2(player.y-e.y,player.x-e.x);player.x+=Math.cos(pa)*40;player.y+=Math.sin(pa)*40;if(player.hp<=0){player.alive=!1;showGameOver();return}}}
+ for(let e of enemies){if(e._dead)continue;let dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy)||0.001,bs=d<180?100:e.spd,spd=bs*(1+gameTime/400);if(e.slowTimer>0){spd*=(1-e.slowAmount);e.slowTimer-=dt;if(e.slowTimer<=0)e.slowAmount=0}if(currentWeather.id==='snowstorm')spd*=0.9;
+ if(e.statusTimer>0){e.statusTimer-=dt;if(e.statusTimer<=0)e.status=null;}
+ if(e.defenseDown>0)e.defenseDown-=dt;
+ if(e.stun>0){e.stun-=dt;continue;}
+ if(e.burnTimer>0){e.hp-=e.burnDmg*dt;e.burnTimer-=dt;e.hitFlash=0.04;if(e.hp<=0)handleEnemyDeath(e)}e.x+=(dx/d)*spd*dt+e.knockback.vx*dt;e.y+=(dy/d)*spd*dt+e.knockback.vy*dt;e.knockback.vx*=Math.exp(-8*dt);e.knockback.vy*=Math.exp(-8*dt);if(e.hitFlash>0)e.hitFlash-=dt;if(e.burnTimer>0&&Math.random()<dt*8)particles.push({x:e.x+rng(-8,8),y:e.y+rng(-8,8),vx:rng(-20,20),vy:rng(-40,-10),color:'#ff6622',life:0.4,maxLife:0.4,size:rng(2,5)});if(player.iframes<=0&&dist(player,e)<12+e.size){player.hp-=e.dmg;player.iframes=0.4;screenShake=Math.max(screenShake,5);sfxPlayerHit();addParticle(player.x,player.y,'#ff4444',6,60,0.3,3);let pa=Math.atan2(player.y-e.y,player.x-e.x);player.x+=Math.cos(pa)*40;player.y+=Math.sin(pa)*40;if(player.hp<=0){player.alive=!1;showGameOver();return}}}
  // Projectiles
  for(let p of projectiles){p.life-=dt;if(p.life<=0){p._remove=!0;continue}
   if(p.type==='missile'){seekTarget(p,dt);p.trail.push({x:p.x,y:p.y,life:0.2})}
@@ -221,12 +315,14 @@ function update(dt){if(gameState==='levelup'||gameState==='gameover'||gameState=
   else{let d=dist(p,e);if(d<p.size+e.size){if(p.type==='missile'){let hitBefore=p.hit.includes(e);dealDmg(e,p.dmg,p);if(!hitBefore){p.hit.push(e);if(p.bounces>0&&p.bounceUsed<p.bounces){p.bounceUsed++;p.target=null;p.hit.length=0;sfxBounce();addParticle(p.x,p.y,'#66ccff',5,60,0.3,3)}else if(p.splits>0&&!p._split){p._split=!0;for(let si2=0;si2<p.splits;si2++){let sa=randAngle();projectiles.push({x:p.x,y:p.y,vx:0,vy:0,spd:p.spd*0.7,angle:sa,turnRate:p.turnRate+2,dmg:p.dmg*0.6,bounces:0,splits:0,pierce:0,life:p.life*0.6,type:'missile',color:'#88ddff',size:3,target:null,trail:[],hit:[],bounceUsed:0})}addParticle(p.x,p.y,'#66ccff',8,80,0.4,4)}else{p._remove=!0}}}else{dealDmg(e,p.dmg,p);if(p._remove)break}}}}}
  projectiles=projectiles.filter(p=>!p._remove);
  // Lightning
- for(let l of lightningEffects){l.life-=dt;if(l.life<l.maxLife*0.7&&!l._applied){l._applied=!0;for(let e of enemies){if(e._dead)continue;if(dist(l,e)<l.aoe+e.size)dealDmg(e,l.dmg,null,'#ffff44')}}}
+ for(let l of lightningEffects){l.life-=dt;if(l.life<l.maxLife*0.7&&!l._applied){l._applied=!0;for(let e of enemies){if(e._dead)continue;if(dist(l,e)<l.aoe+e.size)dealDmg(e,l.dmg,null,'#ffff44',l.element)}}}
  lightningEffects=lightningEffects.filter(l=>l.life>0);
  // Fire explosions
  for(let fe of fireExplosions)fe.life-=dt;fireExplosions=fireExplosions.filter(fe=>fe.life>0);
  // Cone effects
  for(let ce of coneEffects)ce.life-=dt;coneEffects=coneEffects.filter(ce=>ce.life>0);
+ // Reaction effects
+ for(let r of reactionEffects)r.life-=dt;reactionEffects=reactionEffects.filter(r=>r.life>0);
  // Garlic
  updateGarlicAura(dt);for(let a of garlicAuraAlpha)a.life-=dt;garlicAuraAlpha=garlicAuraAlpha.filter(a=>a.life>0);
  // XP
@@ -241,7 +337,7 @@ function update(dt){if(gameState==='levelup'||gameState==='gameover'||gameState=
  // Dmg numbers
  for(let dn of dmgNumbers){dn.life-=dt;dn.y+=dn.vy*dt;dn.vy*=0.98}for(let i=dmgNumbers.length-1;i>=0;i--){if(dmgNumbers[i].life<=0)dmgNumbers.splice(i,1)}
  // Weapon cooldowns
- for(let w of player.weapons){if(w.id==='garlic')continue;if(!w._timer)w._timer=0;w._timer-=dt;if(w._timer<=0){let s2=ws(w);w._timer=s2.cd*player.cdMult;fireWeapon(w)}}
+ for(let w of player.weapons){if(w.id==='garlic')continue;if(!w._timer)w._timer=0;w._timer-=dt;if(w._timer<=0){let s2=ws(w),d2=WDEF[w.id];w._timer=s2.cd*player.cdMult*getElementalCdMult(d2.element);fireWeapon(w)}}
  updateHUD()}
 
 // ==================== RENDER ====================
@@ -249,7 +345,9 @@ function drawGround(){ctx.fillStyle='#111122';ctx.fillRect(0,0,W,H);ctx.strokeSt
 function drawPlayer(){if(!player.alive)return;let px=sx(player.x)+shakeX,py=sy(player.y)+shakeY,ia=player.iframes>0?0.4+0.6*Math.abs(Math.sin(player.iframes*20)):1;ctx.save();ctx.globalAlpha=0.25*ia;let glow=ctx.createRadialGradient(px,py,8,px,py,35);glow.addColorStop(0,'#ffffff');glow.addColorStop(0.5,'#5588ff');glow.addColorStop(1,'transparent');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(px,py,35,0,Math.PI*2);ctx.fill();ctx.restore();ctx.save();ctx.globalAlpha=ia;ctx.fillStyle='#4488ff';ctx.strokeStyle='#aaccff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,12,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(px+Math.cos(player.angle)*16,py+Math.sin(player.angle)*16,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#2266cc';ctx.beginPath();ctx.arc(px,py,7,0,Math.PI*2);ctx.fill();ctx.restore();let gw=player.weapons.find(w=>w.id==='garlic');if(gw){let s2=ws(gw),pulse=1+Math.sin(gameTime*4)*0.06,r2=s2.r*pulse;ctx.save();ctx.globalAlpha=0.12;ctx.strokeStyle='#aadd88';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,r2,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=0.04;ctx.fillStyle='#aadd88';ctx.beginPath();ctx.arc(px,py,r2,0,Math.PI*2);ctx.fill();ctx.restore();for(let a of garlicAuraAlpha){ctx.save();ctx.globalAlpha=(a.life/a.maxLife)*0.25;ctx.fillStyle='#ccffaa';ctx.beginPath();ctx.arc(px,py,a.radius,0,Math.PI*2);ctx.fill();ctx.restore()}}}
 function drawEnemies(){for(let e of enemies){if(!onScreen(e.x,e.y))continue;let ex=sx(e.x)+shakeX,ey=sy(e.y)+shakeY,fc=e.hitFlash>0?'#ffffff':e.color;ctx.save();ctx.fillStyle='rgba(0,0,0,0.4)';ctx.beginPath();ctx.ellipse(ex,ey+e.size*0.7,e.size*0.8,e.size*0.3,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=fc;ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1.5;ctx.beginPath();if(e.type==='fast'){ctx.ellipse(ex,ey,e.size*1.3,e.size*0.7,0,0,Math.PI*2)}else{ctx.arc(ex,ey,e.size,0,Math.PI*2)}ctx.fill();ctx.stroke();// Slow effect tint
  if(e.slowTimer>0){ctx.globalAlpha=0.3;ctx.fillStyle='#88bbff';ctx.beginPath();ctx.arc(ex,ey,e.size,0,Math.PI*2);ctx.fill()}// Burn effect
- if(e.burnTimer>0){ctx.globalAlpha=0.4;ctx.fillStyle='#ff4400';ctx.beginPath();ctx.arc(ex,ey,e.size*1.1,0,Math.PI*2);ctx.fill()}if(e.type==='boss'){ctx.fillStyle='#ffcc44';ctx.beginPath();let cy2=ey-e.size-4;ctx.moveTo(ex-14,cy2+10);ctx.lineTo(ex-10,cy2-8);ctx.lineTo(ex-4,cy2+2);ctx.lineTo(ex,cy2-12);ctx.lineTo(ex+4,cy2+2);ctx.lineTo(ex+10,cy2-8);ctx.lineTo(ex+14,cy2+10);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex-8,ey-4,5,0,Math.PI*2);ctx.arc(ex+8,ey-4,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.beginPath();ctx.arc(ex-8,ey-4,2.5,0,Math.PI*2);ctx.arc(ex+8,ey-4,2.5,0,Math.PI*2);ctx.fill()}else{ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex-4,ey-3,3,0,Math.PI*2);ctx.arc(ex+4,ey-3,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.beginPath();ctx.arc(ex-4,ey-3,1.5,0,Math.PI*2);ctx.arc(ex+4,ey-3,1.5,0,Math.PI*2);ctx.fill()}if(e.type==='boss'||e.type==='tank'){let bw=e.size*2,bh=3,bx=ex-bw/2,by=ey-e.size-(e.type==='boss'?20:14);ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);let hpPct=Math.max(0,e.hp/e.maxHp),hc=hpPct>0.5?'#44dd44':hpPct>0.25?'#ddaa44':'#dd4444';ctx.fillStyle=hc;ctx.fillRect(bx,by,bw*hpPct,bh)}ctx.restore()}}
+ if(e.burnTimer>0){ctx.globalAlpha=0.4;ctx.fillStyle='#ff4400';ctx.beginPath();ctx.arc(ex,ey,e.size*1.1,0,Math.PI*2);ctx.fill()}if(e.type==='boss'){ctx.fillStyle='#ffcc44';ctx.beginPath();let cy2=ey-e.size-4;ctx.moveTo(ex-14,cy2+10);ctx.lineTo(ex-10,cy2-8);ctx.lineTo(ex-4,cy2+2);ctx.lineTo(ex,cy2-12);ctx.lineTo(ex+4,cy2+2);ctx.lineTo(ex+10,cy2-8);ctx.lineTo(ex+14,cy2+10);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex-8,ey-4,5,0,Math.PI*2);ctx.arc(ex+8,ey-4,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.beginPath();ctx.arc(ex-8,ey-4,2.5,0,Math.PI*2);ctx.arc(ex+8,ey-4,2.5,0,Math.PI*2);ctx.fill()}else{ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex-4,ey-3,3,0,Math.PI*2);ctx.arc(ex+4,ey-3,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.beginPath();ctx.arc(ex-4,ey-3,1.5,0,Math.PI*2);ctx.arc(ex+4,ey-3,1.5,0,Math.PI*2);ctx.fill()}if(e.type==='boss'||e.type==='tank'){let bw=e.size*2,bh=3,bx=ex-bw/2,by=ey-e.size-(e.type==='boss'?20:14);ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);let hpPct=Math.max(0,e.hp/e.maxHp),hc=hpPct>0.5?'#44dd44':hpPct>0.25?'#ddaa44':'#dd4444';ctx.fillStyle=hc;ctx.fillRect(bx,by,bw*hpPct,bh)}
+ if(e.status){let ei=ELEMENTS[e.status];if(ei){ctx.font='bold 12px "Segoe UI",sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.strokeText(ei.icon,ex,ey-e.size-10);ctx.fillText(ei.icon,ex,ey-e.size-10)}}
+ ctx.restore()}}
 function drawProjectiles(){for(let p of projectiles){if(!onScreen(p.x,p.y,30))continue;let ppx=sx(p.x)+shakeX,ppy=sy(p.y)+shakeY;if(p.trail&&p.trail.length>1){ctx.save();ctx.strokeStyle=p.color;ctx.lineWidth=p.size*0.6;ctx.globalAlpha=0.4;ctx.beginPath();ctx.moveTo(ppx,ppy);for(let i=p.trail.length-1;i>=0;i--){let t=p.trail[i];ctx.lineTo(sx(t.x)+shakeX,sy(t.y)+shakeY)}ctx.stroke();ctx.restore()}ctx.save();ctx.fillStyle=p.color;ctx.strokeStyle='#ffffff';ctx.lineWidth=1;ctx.translate(ppx,ppy);if(p.type==='axe'){ctx.rotate(p.angle||0);ctx.beginPath();ctx.moveTo(0,-p.size);ctx.lineTo(p.size*0.7,-p.size*0.5);ctx.lineTo(p.size*0.5,p.size*0.8);ctx.lineTo(-p.size*0.5,p.size*0.8);ctx.lineTo(-p.size*0.7,-p.size*0.5);ctx.closePath();ctx.fill()}else if(p.type==='missile'||p.type==='ice'){ctx.beginPath();ctx.arc(0,0,p.size,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffffff';ctx.globalAlpha=0.6;ctx.beginPath();ctx.arc(0,0,p.size*0.5,0,Math.PI*2);ctx.fill()}else if(p.type==='fire'){ctx.beginPath();ctx.arc(0,0,p.size,0,Math.PI*2);ctx.fill();let fg=ctx.createRadialGradient(0,0,p.size*0.3,0,0,p.size);fg.addColorStop(0,'#ffff88');fg.addColorStop(0.5,'#ff6622');fg.addColorStop(1,'rgba(255,50,0,0)');ctx.fillStyle=fg;ctx.fill()}else if(p.type==='lspear'){ctx.rotate(Math.atan2(p.vy,p.vx));ctx.fillStyle='#ccffff';ctx.shadowColor='#88ddff';ctx.shadowBlur=12;ctx.fillRect(-p.size*3,-p.size*0.4,p.size*6,p.size*0.8);ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(p.size*3,-p.size*1.2);ctx.lineTo(p.size*5,0);ctx.lineTo(p.size*3,p.size*1.2);ctx.closePath();ctx.fill();ctx.fillStyle='#ffffff';ctx.shadowBlur=6;ctx.fillRect(-p.size*2.5,-p.size*0.15,p.size*5.5,p.size*0.3)}else{ctx.rotate(Math.atan2(p.vy,p.vx));ctx.fillStyle='#ddd';ctx.fillRect(-p.size*1.5,-1.5,p.size*3,3);ctx.fillStyle='#fff';ctx.fillRect(-p.size*1.5,-0.5,p.size*3,1)}ctx.restore()}}
 function drawLightningEffects(){for(let l of lightningEffects){let alpha=l.life/l.maxLife,lx=sx(l.x)+shakeX,ly=sy(l.y)+shakeY;ctx.save();ctx.globalAlpha=alpha*0.4;ctx.fillStyle='#ffff88';ctx.beginPath();ctx.arc(lx,ly,l.aoe,0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha*0.6;ctx.strokeStyle='#ffff44';ctx.lineWidth=2;ctx.stroke();ctx.restore();if(l.segments.length>1){ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle='#ffffcc';ctx.lineWidth=3;ctx.shadowColor='#ffff88';ctx.shadowBlur=12;ctx.beginPath();let fpt=l.segments[0];ctx.moveTo(sx(fpt.x)+shakeX,sy(fpt.y)+shakeY);for(let i=1;i<l.segments.length;i++){let pt=l.segments[i];ctx.lineTo(sx(pt.x)+shakeX,sy(pt.y)+shakeY)}ctx.stroke();ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.shadowBlur=6;ctx.globalAlpha=alpha*0.8;ctx.stroke();ctx.restore()}ctx.save();ctx.globalAlpha=alpha*0.5;let flash=ctx.createRadialGradient(lx,ly,0,lx,ly,l.aoe);flash.addColorStop(0,'#ffffff');flash.addColorStop(0.3,'#ffffaa');flash.addColorStop(1,'transparent');ctx.fillStyle=flash;ctx.beginPath();ctx.arc(lx,ly,l.aoe,0,Math.PI*2);ctx.fill();ctx.restore()}}
 function drawFireExplosions(){for(let fe of fireExplosions){let alpha=fe.life/fe.maxLife,fx=sx(fe.x)+shakeX,fy=sy(fe.y)+shakeY;ctx.save();ctx.globalAlpha=alpha*0.35;let g=ctx.createRadialGradient(fx,fy,0,fx,fy,fe.radius);g.addColorStop(0,'#ffff88');g.addColorStop(0.4,'#ff6622');g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.beginPath();ctx.arc(fx,fy,fe.radius,0,Math.PI*2);ctx.fill();ctx.restore()}}
@@ -257,14 +355,15 @@ function drawConeEffects(){for(let ce of coneEffects){let alpha=ce.life/ce.maxLi
 ctx.globalAlpha=alpha*0.2;ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,ce.coneR*0.7,ce.angle-ha*0.7,ce.angle+ha*0.7);ctx.closePath();ctx.fill();ctx.restore()}}
 function drawXPGems(){for(let gem of xpGems){if(!onScreen(gem.x,gem.y,20))continue;let gx=sx(gem.x)+shakeX,gy=sy(gem.y)+shakeY+Math.sin(gameTime*3+gem.bobOff)*3,pulse=1+Math.sin(gameTime*5+gem.bobOff)*0.2;ctx.save();let glow=ctx.createRadialGradient(gx,gy,1,gx,gy,8*pulse);glow.addColorStop(0,'rgba(100,255,140,0.7)');glow.addColorStop(1,'transparent');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(gx,gy,8*pulse,0,Math.PI*2);ctx.fill();ctx.fillStyle='#44ff88';ctx.strokeStyle='#aaffcc';ctx.lineWidth=1;ctx.beginPath();let s2=4*pulse;ctx.moveTo(gx,gy-s2);ctx.lineTo(gx+s2,gy);ctx.lineTo(gx,gy+s2);ctx.lineTo(gx-s2,gy);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore()}}
 function drawParticles(){for(let p of particles){let ppx=sx(p.x)+shakeX,ppy=sy(p.y)+shakeY,alpha=p.life/p.maxLife;ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(ppx,ppy,p.size*alpha,0,Math.PI*2);ctx.fill();ctx.restore()}}
+function drawReactionEffects(){for(let r of reactionEffects){let alpha=r.life/r.maxLife,rx=sx(r.x)+shakeX,ry=sy(r.y)+shakeY;ctx.save();ctx.globalAlpha=alpha;ctx.font='bold 16px "Segoe UI",sans-serif';ctx.textAlign='center';ctx.fillStyle='#ffcc44';ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.strokeText(r.name,rx,ry-20);ctx.fillText(r.name,rx,ry-20);ctx.restore();if(r.particles==='explosion'){ctx.save();ctx.globalAlpha=alpha*0.4;ctx.fillStyle='#ff6622';ctx.beginPath();ctx.arc(rx,ry,40*(1-alpha+0.2),0,Math.PI*2);ctx.fill();ctx.restore()}else if(r.particles==='steam'){ctx.save();ctx.globalAlpha=alpha*0.3;ctx.fillStyle='#ffffff';for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(rx+rng(-20,20),ry+rng(-30,30)-i*10,8+alpha*10,0,Math.PI*2);ctx.fill()}ctx.restore()}else if(r.particles==='spark'){ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle='#ffff44';ctx.lineWidth=1.5;for(let i=0;i<8;i++){let a=i*Math.PI/4,l=20+alpha*30;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx+Math.cos(a)*l,ry+Math.sin(a)*l);ctx.stroke()}ctx.restore()}else if(r.particles==='ice'){ctx.save();ctx.globalAlpha=alpha*0.5;ctx.fillStyle='#aaddff';for(let i=0;i<6;i++){ctx.beginPath();ctx.arc(rx+rng(-25,25),ry+rng(-25,25),3+alpha*5,0,Math.PI*2);ctx.fill()}ctx.restore()}}}
 function drawDmgNumbers(){for(let dn of dmgNumbers){let dx=sx(dn.x)+shakeX,dy=sy(dn.y)+shakeY,alpha=Math.min(1,dn.life/0.3);ctx.save();ctx.globalAlpha=alpha;ctx.font=`bold ${dn.size}px "Segoe UI",sans-serif`;ctx.fillStyle=dn.color;ctx.strokeStyle='rgba(0,0,0,0.6)';ctx.lineWidth=2;ctx.textAlign='center';ctx.strokeText(dn.text,dx,dy);ctx.fillText(dn.text,dx,dy);ctx.restore()}}
 function drawBossWarning(){if(!firstBossSpawned&&bossTimer>110&&bossTimer<120){let alpha=Math.abs(Math.sin(gameTime*8))*0.6;ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle='#ff4444';ctx.font='bold 28px "Segoe UI",sans-serif';ctx.textAlign='center';ctx.fillText('⚠ BOSS 即将到来！⚠',W/2,H/2-60);ctx.restore()}}
 function drawJoystick(){if(!joystick.active)return;let bx=joystick.baseX,by=joystick.baseY,tx=bx+joystick.moveX*JR,ty=by+joystick.moveY*JR;ctx.save();ctx.globalAlpha=0.35;ctx.fillStyle='#222244';ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by,JR,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.globalAlpha=0.15;ctx.strokeStyle='#888';ctx.lineWidth=1;for(let i=0;i<4;i++){let a=i*Math.PI/2;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx+Math.cos(a)*JR*0.85,by+Math.sin(a)*JR*0.85);ctx.stroke()}ctx.globalAlpha=0.6;let tg=ctx.createRadialGradient(tx,ty,JT*0.2,tx,ty,JT);tg.addColorStop(0,'#8899cc');tg.addColorStop(1,'#334466');ctx.fillStyle=tg;ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(tx,ty,JT,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.globalAlpha=0.7;ctx.fillStyle='#aabbee';ctx.beginPath();ctx.arc(tx,ty,JT*0.45,0,Math.PI*2);ctx.fill();ctx.restore()}
-function render(){ctx.clearRect(0,0,W,H);drawGround();drawXPGems();drawEnemies();drawProjectiles();drawLightningEffects();drawFireExplosions();drawConeEffects();drawParticles();drawPlayer();drawDmgNumbers();if(gameState==='playing'||gameState==='postupgrade')drawBossWarning();if(joystick.active)drawJoystick()}
+function render(){ctx.clearRect(0,0,W,H);drawGround();drawXPGems();drawEnemies();drawProjectiles();drawLightningEffects();drawFireExplosions();drawConeEffects();drawReactionEffects();drawParticles();drawPlayer();drawDmgNumbers();if(gameState==='playing'||gameState==='postupgrade')drawBossWarning();if(joystick.active)drawJoystick()}
 
 // ==================== GAME LOOP ====================
 function gameLoop(ts){let dt=lastTime?(ts-lastTime)/1000:0.016;lastTime=ts;if(gameState==='playing'||gameState==='postupgrade')update(dt);render();requestAnimationFrame(gameLoop)}
-function startGame(){initAudio();document.getElementById('title-screen').style.display='none';player.weapons=[{id:'magic_missile',level:1,_timer:0}];updateWeaponsBar();updateHUD();gameState='playing';canvas.focus();lastTime=0}
+function startGame(){initAudio();document.getElementById('title-screen').style.display='none';player.weapons=[{id:'magic_missile',level:1,_timer:0}];currentWeather=WEATHER_TYPES.clear;weatherTimer=0;weatherDuration=getWeatherDuration();weatherAnnounceTimer=0;updateWeaponsBar();updateHUD();gameState='playing';canvas.focus();lastTime=0}
 document.getElementById('btn-start').addEventListener('click',startGame);
 window.addEventListener('keydown',e=>{if(e.key==='Enter'&&gameState==='gameover')restartGame();if(e.key==='Enter'&&gameState==='title')startGame()});
 canvas.focus();requestAnimationFrame(gameLoop);
