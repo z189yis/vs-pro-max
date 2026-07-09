@@ -104,7 +104,7 @@ export function dealDmg(e, dmg, proj, color, element) {
   e.hitFlash = 0.08;
   addDmgNumber(e.x + rng(-8, 8), e.y + rng(-8, 8), fd, color || proj?.color || '#ffffff');
   if (el) applyElement(e, el, fd, proj);
-  if (proj && proj.pierce !== undefined) { proj.pierce--; if (proj.pierce < 0) proj._remove = true; }
+  if (proj && proj.pierce !== undefined && proj.pierce !== Infinity) { proj.pierce--; if (proj.pierce < 0) proj._remove = true; }
   if (e.hp <= 0) handleEnemyDeath(e);
 }
 

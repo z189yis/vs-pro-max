@@ -56,10 +56,20 @@ export function updateWeather(dt) {
     weatherTimer = 0;
     weatherDuration = getWeatherDuration();
     weatherAnnounceTimer = 4;
+    showWeatherBanner();
   }
   if (currentWeather.value.id === 'rain') {
     for (let e of enemies) { if (e._dead || !e.active) continue; if (Math.random() < dt * 0.08) e.status = 'water'; }
   }
+}
+
+export function showWeatherBanner() {
+  const banner = document.getElementById('weather-banner');
+  if (!banner) return;
+  const w = currentWeather.value;
+  banner.textContent = `${w.icon} ${w.name} · ${w.desc}`;
+  banner.classList.add('active');
+  setTimeout(() => banner.classList.remove('active'), 3500);
 }
 
 export function getUpgradeOptions() {
@@ -170,6 +180,8 @@ export function restartGame() {
   }
   camera.x = 0; camera.y = 0;
   currentWeather.value = WEATHER_TYPES.clear;
+  const banner = document.getElementById('weather-banner');
+  if (banner) banner.classList.remove('active');
   document.getElementById('game-over').classList.remove('active');
   document.getElementById('upgrade-overlay').classList.remove('active');
   document.getElementById('title-screen').style.display = 'none';
@@ -183,6 +195,8 @@ export function startGame() {
   player.weapons = [{ id: 'magic_missile', level: 1, _timer: 0 }];
   currentWeather.value = WEATHER_TYPES.clear;
   weatherTimer = 0; weatherDuration = getWeatherDuration(); weatherAnnounceTimer = 0;
+  const banner = document.getElementById('weather-banner');
+  if (banner) banner.classList.remove('active');
   updateWeaponsBar(); updateHUD();
   gameState.value = 'playing'; canvas.focus(); lastTime = 0;
 }
@@ -204,9 +218,8 @@ export function seekTarget(p, dt) {
 export function update(dt) {
   if (gameState.value === 'levelup' || gameState.value === 'gameover' || gameState.value === 'title') return;
   if (gameState.value === 'postupgrade') {
-    const hm = keys['w'] || keys['arrowup'] || keys['s'] || keys['arrowdown'] || keys['a'] || keys['arrowleft'] || keys['d'] || keys['arrowright'] || joystick.active;
-    if (!hm) { lastTime = 0; return; }
     gameState.value = 'playing';
+    lastTime = 0;
   }
   dt = Math.min(dt, 0.1);
   gameTime.value += dt;

@@ -25,14 +25,14 @@ export const WDEF = {
     element: 'physical',
     descs: ['自动追踪 1 把穿透飞刀', '数量+1 · 伤害+2', '数量+1 · 速度+15%', '数量+1 · 伤害+3', '数量+1 · 冷却-0.1s', '数量+1 · 伤害+4', '数量+2 · 速度+15%', '数量+3 · 伤害+5'],
     stats: [
-      { n: 1, cd: 0.65, d: 10, s: 420, tr: 5, p: 99, l: 1.5 },
-      { n: 2, cd: 0.6, d: 12, s: 420, tr: 5, p: 99, l: 1.5 },
-      { n: 3, cd: 0.55, d: 15, s: 480, tr: 6, p: 99, l: 1.5 },
-      { n: 4, cd: 0.5, d: 18, s: 480, tr: 6, p: 99, l: 1.6 },
-      { n: 5, cd: 0.4, d: 22, s: 480, tr: 7, p: 99, l: 1.6 },
-      { n: 6, cd: 0.35, d: 26, s: 520, tr: 7, p: 99, l: 1.7 },
-      { n: 8, cd: 0.3, d: 30, s: 520, tr: 8, p: 99, l: 1.7 },
-      { n: 11, cd: 0.22, d: 36, s: 560, tr: 8, p: 99, l: 1.8 }
+      { n: 1, cd: 0.65, d: 10, s: 420, tr: 5, p: Infinity, l: 1.5 },
+      { n: 2, cd: 0.6, d: 12, s: 420, tr: 5, p: Infinity, l: 1.5 },
+      { n: 3, cd: 0.55, d: 15, s: 480, tr: 6, p: Infinity, l: 1.5 },
+      { n: 4, cd: 0.5, d: 18, s: 480, tr: 6, p: Infinity, l: 1.6 },
+      { n: 5, cd: 0.4, d: 22, s: 480, tr: 7, p: Infinity, l: 1.6 },
+      { n: 6, cd: 0.35, d: 26, s: 520, tr: 7, p: Infinity, l: 1.7 },
+      { n: 8, cd: 0.3, d: 30, s: 520, tr: 8, p: Infinity, l: 1.7 },
+      { n: 11, cd: 0.22, d: 36, s: 560, tr: 8, p: Infinity, l: 1.8 }
     ]
   },
   garlic: {
@@ -61,14 +61,14 @@ export const WDEF = {
     element: 'physical',
     descs: ['弧形环绕 1 把斧头', '数量+1 · 伤害+4', '范围+30 · 伤害+4', '数量+1 · 转速+15%', '伤害+6 · 冷却-0.2s', '数量+1 · 范围+30', '伤害+8 · 冷却-0.2s', '数量+2 · 伤害+12'],
     stats: [
-      { n: 1, cd: 2.2, d: 18, orbitR: 130, orbitS: 2.5, aoe: 35, p: 99, l: 4 },
-      { n: 2, cd: 2.1, d: 22, orbitR: 130, orbitS: 2.5, aoe: 35, p: 99, l: 4 },
-      { n: 2, cd: 1.9, d: 26, orbitR: 160, orbitS: 2.7, aoe: 40, p: 99, l: 4.5 },
-      { n: 3, cd: 1.8, d: 30, orbitR: 160, orbitS: 3.1, aoe: 40, p: 99, l: 4.5 },
-      { n: 3, cd: 1.6, d: 36, orbitR: 170, orbitS: 3.1, aoe: 45, p: 99, l: 5 },
-      { n: 4, cd: 1.4, d: 40, orbitR: 190, orbitS: 3.4, aoe: 48, p: 99, l: 5 },
-      { n: 4, cd: 1.2, d: 48, orbitR: 190, orbitS: 3.8, aoe: 52, p: 99, l: 5.5 },
-      { n: 6, cd: 0.9, d: 58, orbitR: 220, orbitS: 4.2, aoe: 58, p: 99, l: 5.5 }
+      { n: 1, cd: 2.2, d: 18, orbitR: 130, orbitS: 2.5, aoe: 35, p: Infinity, l: 4 },
+      { n: 2, cd: 2.1, d: 22, orbitR: 130, orbitS: 2.5, aoe: 35, p: Infinity, l: 4 },
+      { n: 2, cd: 1.9, d: 26, orbitR: 160, orbitS: 2.7, aoe: 40, p: Infinity, l: 4.5 },
+      { n: 3, cd: 1.8, d: 30, orbitR: 160, orbitS: 3.1, aoe: 40, p: Infinity, l: 4.5 },
+      { n: 3, cd: 1.6, d: 36, orbitR: 170, orbitS: 3.1, aoe: 45, p: Infinity, l: 5 },
+      { n: 4, cd: 1.4, d: 40, orbitR: 190, orbitS: 3.4, aoe: 48, p: Infinity, l: 5 },
+      { n: 4, cd: 1.2, d: 48, orbitR: 190, orbitS: 3.8, aoe: 52, p: Infinity, l: 5.5 },
+      { n: 6, cd: 0.9, d: 58, orbitR: 220, orbitS: 4.2, aoe: 58, p: Infinity, l: 5.5 }
     ]
   },
   lightning: {

@@ -28,6 +28,9 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 .upgrade-card .card-level { font-size: 12px; color: #aaa; margin-bottom: 8px; }
 .upgrade-card .card-desc { font-size: 11px; color: #aab; line-height: 1.4; }
 .upgrade-card .card-new { display: inline-block; background: #ff4444; color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-bottom: 4px; }
+#weather-banner { position: absolute; top: 64px; left: 50%; transform: translateX(-50%) translateY(-80px); padding: 10px 28px; background: rgba(20,20,40,0.85); border: 1px solid rgba(255,255,255,0.2); border-radius: 30px; color: #ffcc44; font-size: 18px; font-weight: bold; text-shadow: 0 0 12px rgba(255,200,50,0.6); pointer-events: none; z-index: 15; opacity: 0; transition: transform 0.5s ease, opacity 0.5s ease; }
+#weather-banner.active { transform: translateX(-50%) translateY(0); opacity: 1; }
+@media (max-width: 768px) { #weather-banner { font-size: 14px; padding: 8px 20px; top: 56px; } }
 #game-over { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 200; cursor: pointer; }
 #game-over.active { display: flex; }
 #game-over h1 { color: #ff4444; font-size: 48px; margin-bottom: 16px; text-shadow: 0 0 30px rgba(255,50,50,0.6); }
@@ -51,6 +54,7 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 <div id="hud"><div class="hud-item">🕐 <span id="hud-time">00:00</span></div><div class="hud-item">💀 <span id="hud-kills">0</span></div><div class="hud-item">⭐ Lv.<span id="hud-level">1</span></div><div class="hud-item">❤️ <span id="hud-hp">100</span></div><div id="hud-weather" class="hud-item" title="天气效果">☀️ 晴朗</div></div>
 <div id="xp-bar-wrap"><div id="xp-bar-fill" style="width:0%"></div></div>
 <div id="weapons-bar"></div>
+<div id="weather-banner"></div>
 <div id="upgrade-overlay"><div id="upgrade-title">⬆ 选择升级</div><div id="upgrade-cards"></div></div>
 <div id="game-over" onclick="if(window.__restartGame)window.__restartGame()"><h1>游戏结束</h1><div class="stats">🕐 生存时间: <span id="go-time">00:00</span></div><div class="stats">💀 击杀数: <span id="go-kills">0</span></div><div class="stats">⭐ 等级: <span id="go-level">1</span></div><div class="hint"><span class="ctrl-desk">按 Enter 重新开始</span><span class="ctrl-mobile">点击屏幕重新开始</span></div></div>
 <div id="title-screen"><h1>🧛 吸血鬼幸存者</h1><div class="subtitle">— Pro Max —</div><button class="start-btn" id="btn-start">开始游戏</button><div class="controls"><span class="ctrl-desk">WASD / 方向键 — 移动</span><span class="ctrl-mobile">左侧滑动摇杆 — 移动</span><br>武器自动攻击 · 升级时选择卡片<br>尽可能长时间生存！</div></div>

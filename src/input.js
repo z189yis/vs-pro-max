@@ -111,6 +111,7 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
 
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
+    if (getGameState() === 'postupgrade') { setPostUpgrade(); }
     e.preventDefault();
   });
   window.addEventListener('keyup', e => {
