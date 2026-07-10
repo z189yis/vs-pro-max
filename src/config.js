@@ -143,6 +143,20 @@ export const WDEF = {
       { n: 5, cd: 0.9, d: 62, aoe: 120, burn: 19, burnT: 5, s: 300, tr: 9, l: 3.5 }
     ]
   },
+  disintegrate_ray: {
+    id: 'disintegrate_ray', name: '瓦解射线', icon: '🔆', color: '#ff66ff', element: 'arcane',
+    descs: ['持续 0.6s 瓦解射线 · 穿刺伤害', '持续时间 +0.1s · 伤害 +2', '宽度 +4 · 伤害 +3', '持续时间 +0.1s · 伤害 +4', '冷却 -0.15s · 伤害 +4', '宽度 +5 · 持续时间 +0.1s', '伤害 +6 · 冷却 -0.15s', '持续时间 +0.2s · 伤害 +10'],
+    stats: [
+      { n: 1, cd: 2.0, d: 8, range: 420, dur: 0.6, tick: 0.08, width: 10 },
+      { n: 1, cd: 1.9, d: 10, range: 420, dur: 0.7, tick: 0.08, width: 10 },
+      { n: 1, cd: 1.8, d: 13, range: 440, dur: 0.7, tick: 0.08, width: 14 },
+      { n: 1, cd: 1.7, d: 17, range: 440, dur: 0.8, tick: 0.08, width: 14 },
+      { n: 1, cd: 1.55, d: 21, range: 460, dur: 0.8, tick: 0.07, width: 14 },
+      { n: 1, cd: 1.4, d: 25, range: 460, dur: 0.9, tick: 0.07, width: 19 },
+      { n: 1, cd: 1.25, d: 31, range: 480, dur: 0.9, tick: 0.06, width: 19 },
+      { n: 1, cd: 1.0, d: 41, range: 500, dur: 1.1, tick: 0.05, width: 24 }
+    ]
+  },
   blizzard: {
     id: 'blizzard',
     name: '暴风雪',

@@ -1,11 +1,11 @@
 import { WDEF, PASSIVES, WEATHER_TYPES, getWeatherDuration } from './config.js';
 import { W, H, camera, dist, rng, irng, clamp, lerp, randAngle, sx, sy, onScreen, addToPool, compactPool, compactTrail, countActive,
-  enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects,
+  enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams,
   addParticle, addDmgNumber
 } from './utils.js';
 import { keys, joystick } from './input.js';
 import { playerRef, gameRefs, enemyGrid, setPlayer, setGameRefs, spawnEnemy, spawnWave, spawnBoss, handleEnemyDeath, dealDmg, applyElement, calcDamage, getElementalDamageMult, getElementalCdMult } from './entities.js';
-import { ws, fireWeapon, updateGarlicAura, updateBlizzardZones } from './weapons.js';
+import { ws, fireWeapon, updateGarlicAura, updateBlizzardZones, updateDisintegrateBeams } from './weapons.js';
 import { sfxReaction, sfxPickup, sfxLevelUp, sfxPlayerHit, sfxGameOver } from './audio.js';
 
 export const player = {
@@ -42,7 +42,7 @@ export function initGameRefs() {
   setGameRefs({
     gameState, gameTime, kills, screenShake, enemies, projectiles, xpGems, particles, dmgNumbers,
     lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones,
-    frostNovaEffects, currentWeather, player
+    frostNovaEffects, disintegrateBeams, currentWeather, player
   });
 }
 
@@ -175,7 +175,7 @@ export function restartGame() {
   Object.assign(player, { x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8, facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, magnetRange: 100, iframes: 0, alive: true });
   player.weapons = [{ id: 'magic_missile', level: 1, _timer: 0 }];
   gameTime.value = 0; kills.value = 0; screenShake.value = 0; bossTimer.value = 0; firstBossSpawned = false; spawnTimer = 0; weatherTimer = 0; weatherDuration = getWeatherDuration(); weatherAnnounceTimer = 0;
-  for (let a of [enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects]) {
+  for (let a of [enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams]) {
     for (let i = 0; i < a.length; i++) a[i].active = false;
   }
   camera.x = 0; camera.y = 0;
@@ -392,6 +392,7 @@ export function update(dt) {
   for (let a of garlicAuraAlpha) { if (a.active) a.life -= dt; } compactPool(garlicAuraAlpha, a => a.life <= 0);
   updateBlizzardZones(dt); compactPool(blizzardZones, b => b.life <= 0);
   for (let f of frostNovaEffects) { if (!f.active) continue; f.life -= dt; f.radius = lerp(0, f.maxRadius, 1 - f.life / f.maxLife); } compactPool(frostNovaEffects, f => f.life <= 0);
+  updateDisintegrateBeams(dt);
   for (let gem of xpGems) {
     if (!gem.active) continue; gem.life -= dt;
     const d = dist(player, gem);
@@ -562,6 +563,27 @@ export function drawFrostNovaEffects() {
   }
 }
 
+export function drawDisintegrateBeams() {
+  for (let b of disintegrateBeams) {
+    if (!b.active) continue;
+    const alpha = b.life / b.duration;
+    const bx = sx(b.x) + shakeX, by = sy(b.y) + shakeY;
+    const ex = sx(b.endX) + shakeX, ey = sy(b.endY) + shakeY;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.5;
+    ctx.strokeStyle = '#ff66ff'; ctx.lineWidth = b.width * 2.5; ctx.lineCap = 'round';
+    ctx.shadowColor = '#ff66ff'; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.globalAlpha = alpha * 0.9;
+    ctx.strokeStyle = '#ffccff'; ctx.lineWidth = b.width; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = b.width * 0.4; ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.restore();
+  }
+}
+
 export function drawXPGems() {
   for (let gem of xpGems) {
     if (!gem.active || !onScreen(gem.x, gem.y, 20)) continue;
@@ -616,7 +638,7 @@ export function drawJoystick() {
 
 export function render() {
   ctx.clearRect(0, 0, W.value, H.value);
-  drawGround(); drawXPGems(); drawEnemies(); drawProjectiles(); drawLightningEffects(); drawFireExplosions(); drawConeEffects(); drawReactionEffects(); drawBlizzardZones(); drawFrostNovaEffects(); drawParticles(); drawPlayer(); drawDmgNumbers();
+  drawGround(); drawXPGems(); drawEnemies(); drawProjectiles(); drawLightningEffects(); drawFireExplosions(); drawConeEffects(); drawReactionEffects(); drawBlizzardZones(); drawFrostNovaEffects(); drawDisintegrateBeams(); drawParticles(); drawPlayer(); drawDmgNumbers();
   if (gameState.value === 'playing' || gameState.value === 'postupgrade') drawBossWarning();
   if (joystick.active) drawJoystick();
 }

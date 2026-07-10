@@ -50,6 +50,7 @@ export function sfxBounce() { beep(1500, 0.04, 'square', 0.04, 400); }
 export function sfxLightningSpear() { beep(900, 0.08, 'square', 0.05); beep(2200, 0.05, 'sine', 0.04, -1000); }
 export function sfxBlizzard() { beep(1200, 0.08, 'sine', 0.04, -600); beep(300, 0.15, 'sine', 0.05, -100); }
 export function sfxFrostNova() { beep(600, 0.12, 'sine', 0.08, 800); beep(1400, 0.06, 'square', 0.05, -400); }
+export function sfxDisintegrate() { beep(200, 0.3, 'sawtooth', 0.06, 1200); }
 
 export function sfxReaction(type) {
   if (type === 'explosion') {

@@ -3,6 +3,14 @@ export const H = { value: window.innerHeight };
 export const camera = { x: 0, y: 0 };
 
 export function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+export function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
 export function rng(a, b) { return Math.random() * (b - a) + a; }
 export function irng(a, b) { return Math.floor(rng(a, b + 1)); }
 export function clamp(v, l, h) { return Math.max(l, Math.min(h, v)); }
@@ -128,6 +136,7 @@ export const coneEffects = [];
 export const reactionEffects = [];
 export const blizzardZones = [];
 export const frostNovaEffects = [];
+export const disintegrateBeams = [];
 
 export function addProjectile(obj) { return addToPool(projectiles, 400, obj, 'life'); }
 export function addLightningEffect(obj) { return addToPool(lightningEffects, 100, obj, 'life'); }
@@ -138,6 +147,7 @@ export function addReactionEffect(obj) { return addToPool(reactionEffects, 50, o
 export function addBlizzardZone(obj) { return addToPool(blizzardZones, 50, obj, 'life'); }
 export function addFrostNovaEffect(obj) { return addToPool(frostNovaEffects, 30, obj, 'life'); }
 export function addGarlicAura(obj) { return addToPool(garlicAuraAlpha, 20, obj, 'life'); }
+export function addDisintegrateBeam(obj) { return addToPool(disintegrateBeams, 30, obj, 'life'); }
 export function addEnemy(obj) { return addToPool(enemies, 250, obj, '_spawnTime'); }
 
 export function addParticle(x, y, color, count = 5, speed = 80, life = 0.5, size = 3) {

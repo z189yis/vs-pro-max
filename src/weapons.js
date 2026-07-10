@@ -1,6 +1,6 @@
 import { WDEF } from './config.js';
-import { rng, irng, dist, clamp, addToPool, addParticle, addDmgNumber, addLightningEffect, addFireExplosion, addConeEffect, addBlizzardZone, addFrostNovaEffect, addGarlicAura, onScreen } from './utils.js';
-import { sfxShoot, sfxKnife, sfxGarlicTick, sfxAxe, sfxLightning, sfxLightningSpear, sfxIce, sfxFire, sfxBlizzard, sfxFrostNova, sfxBounce } from './audio.js';
+import { rng, irng, dist, clamp, addToPool, addParticle, addDmgNumber, addLightningEffect, addFireExplosion, addConeEffect, addBlizzardZone, addFrostNovaEffect, addGarlicAura, addDisintegrateBeam, disintegrateBeams, distToSegment, onScreen } from './utils.js';
+import { sfxShoot, sfxKnife, sfxGarlicTick, sfxAxe, sfxLightning, sfxLightningSpear, sfxIce, sfxFire, sfxBlizzard, sfxFrostNova, sfxBounce, sfxDisintegrate } from './audio.js';
 import { playerRef, gameRefs, enemyGrid, handleEnemyDeath } from './entities.js';
 
 export function ws(w) { return WDEF[w.id].stats[clamp(w.level - 1, 0, 7)]; }
@@ -158,6 +158,32 @@ export function fireWeapon(weapon) {
       addParticle(player.x, player.y, '#aaddff', 20, 140, 0.5, 5);
       break;
     }
+    case 'disintegrate_ray': {
+      sfxDisintegrate();
+      let target = null, nd = Infinity;
+      for (let e of gameRefs.enemies) {
+        if (!e.active || e._dead) continue;
+        const d = dist(player, e);
+        if (d < nd) { nd = d; target = e; }
+      }
+      let angle = player.facingAngle;
+      let endX = player.x + Math.cos(angle) * s.range;
+      let endY = player.y + Math.sin(angle) * s.range;
+      if (target) {
+        angle = Math.atan2(target.y - player.y, target.x - player.x);
+        const d = Math.min(dist(player, target), s.range);
+        endX = player.x + Math.cos(angle) * d;
+        endY = player.y + Math.sin(angle) * d;
+      }
+      addDisintegrateBeam({
+        x: player.x, y: player.y, endX, endY, angle,
+        dmg: pd, range: s.range, width: s.width,
+        duration: s.dur, life: s.dur,
+        tick: s.tick, nextTick: 0
+      });
+      if (gameRefs.screenShake) gameRefs.screenShake.value = Math.max(gameRefs.screenShake.value, 1);
+      break;
+    }
   }
 }
 
@@ -210,4 +236,31 @@ export function updateBlizzardZones(dt) {
       }
     }
   }
+}
+
+export function updateDisintegrateBeams(dt) {
+  const player = playerRef.value;
+  for (let b of disintegrateBeams) {
+    if (!b.active) continue;
+    b.life -= dt;
+    b.nextTick -= dt;
+    b.x = player.x;
+    b.y = player.y;
+    b.endX = player.x + Math.cos(b.angle) * b.range;
+    b.endY = player.y + Math.sin(b.angle) * b.range;
+    if (b.nextTick <= 0) {
+      b.nextTick = b.tick;
+      for (let e of gameRefs.enemies) {
+        if (!e.active || e._dead) continue;
+        const d = distToSegment(e.x, e.y, b.x, b.y, b.endX, b.endY);
+        if (d < b.width + e.size) {
+          e.hp -= b.dmg;
+          e.hitFlash = 0.06;
+          addDmgNumber(e.x + rng(-6, 6), e.y + rng(-6, 6), b.dmg, '#ff66ff');
+          if (e.hp <= 0) handleEnemyDeath(e);
+        }
+      }
+    }
+  }
+  compactPool(disintegrateBeams, b => b.life <= 0);
 }
