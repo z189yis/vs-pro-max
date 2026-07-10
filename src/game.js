@@ -6,7 +6,7 @@ import { W, H, camera, dist, rng, irng, clamp, lerp, randAngle, sx, sy, onScreen
 import { keys, joystick } from './input.js';
 import { playerRef, gameRefs, enemyGrid, setPlayer, setGameRefs, spawnEnemy, spawnWave, spawnBoss, handleEnemyDeath, dealDmg, applyElement, calcDamage, getElementalDamageMult, getElementalCdMult } from './entities.js';
 import { ws, fireWeapon, updateGarlicAura, updateBlizzardZones, updateDisintegrateBeams } from './weapons.js';
-import { sfxReaction, sfxPickup, sfxLevelUp, sfxPlayerHit, sfxGameOver } from './audio.js';
+import { sfxReaction, sfxPickup, sfxLevelUp, sfxPlayerHit, sfxGameOver, sfxBounce } from './audio.js';
 
 export const player = {
   x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8,

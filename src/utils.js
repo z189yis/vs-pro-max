@@ -112,6 +112,7 @@ export function compactPool(arr, inactiveFn) {
     if (w !== i) arr[w] = it;
     w++;
   }
+  arr.length = w;
 }
 
 export function compactTrail(t) {
