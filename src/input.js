@@ -35,6 +35,12 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
     const W = window.innerWidth;
     for (let tch of e.changedTouches) {
       const p = tp(tch);
+      if (p.x >= W / 2) continue;
+      if (!joystick.active) {
+        joystick.active = true;
+        joystick.baseX = p.x;
+        joystick.baseY = p.y;
+      }
       const dx = p.x - joystick.baseX;
       const dy = p.y - joystick.baseY;
       const d = Math.hypot(dx, dy);
@@ -45,7 +51,6 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
         joystick.moveX = (dx / d) * joystick.dist;
         joystick.moveY = (dy / d) * joystick.dist;
       }
-      joystick.active = true;
     }
   }, { passive: false });
 
@@ -90,7 +95,12 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
   });
 
   canvas.addEventListener('mousemove', e => {
-    if (!mouseDown || !joystick.active) return;
+    if (!mouseDown || e.clientX >= window.innerWidth / 2) return;
+    if (!joystick.active) {
+      joystick.active = true;
+      joystick.baseX = e.clientX;
+      joystick.baseY = e.clientY;
+    }
     const dx = e.clientX - joystick.baseX;
     const dy = e.clientY - joystick.baseY;
     const d = Math.hypot(dx, dy);
