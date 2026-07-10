@@ -35,8 +35,8 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
     const W = window.innerWidth;
     for (let tch of e.changedTouches) {
       const p = tp(tch);
-      if (p.x >= W / 2) continue;
       if (!joystick.active) {
+        if (p.x >= W / 2) continue;
         joystick.active = true;
         joystick.baseX = p.x;
         joystick.baseY = p.y;
