@@ -1,5 +1,5 @@
 import { WDEF, ELEMENTS, ELEMENT_STATUS_DURATION, ELEMENT_REACTIONS } from './config.js';
-import { rng, irng, dist, addToPool, addParticle, addDmgNumber, addLightningEffect, addReactionEffect, addXPGem, countActive, SpatialGrid, enemies } from './utils.js';
+import { rng, irng, dist, randAngle, addToPool, addParticle, addDmgNumber, addLightningEffect, addReactionEffect, addXPGem, countActive, SpatialGrid, enemies } from './utils.js';
 import { sfxReaction, sfxKill, sfxBossSpawn } from './audio.js';
 
 export let playerRef = { value: null };
