@@ -198,8 +198,8 @@ export const WDEF = {
 export const PASSIVES = [
   { id: 'maxHp', name: '生命力', icon: '❤️', desc: '+30 最大生命值', a: (p) => { p.maxHp += 30; } },
   { id: 'speed', name: '迅捷', icon: '💨', desc: '+12% 移动速度', a: (p) => { p.speed *= 1.12; } },
-  { id: 'damage', name: '力量', icon: '💪', desc: '+12% 伤害', a: (p) => { p.dmgMult *= 1.12; } },
-  { id: 'cooldown', name: '急速', icon: '⏩', desc: '-8% 冷却', a: (p) => { p.cdMult *= 0.92; } },
+  { id: 'damage', name: '力量', icon: '💪', desc: '+12% 伤害', a: (p) => { p.powerStacks = (p.powerStacks || 0) + 1; p.dmgMult = 1 + p.powerStacks * 0.12; } },
+  { id: 'cooldown', name: '急速', icon: '⏩', desc: '-8% 冷却', a: (p) => { p.hasteStacks = (p.hasteStacks || 0) + 1; p.cdMult = 1 / (1 + p.hasteStacks * 0.08); } },
   { id: 'magnet', name: '磁铁', icon: '🧲', desc: '+30 拾取范围', a: (p) => { p.magnetRange += 30; } }
 ];
 

@@ -10,7 +10,7 @@ import { sfxReaction, sfxPickup, sfxLevelUp, sfxPlayerHit, sfxGameOver, sfxBounc
 
 export const player = {
   x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8,
-  facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, magnetRange: 100,
+  facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, powerStacks: 0, hasteStacks: 0, magnetRange: 100,
   weapons: [], iframes: 0, alive: true
 };
 
@@ -172,7 +172,7 @@ export function showGameOver() {
 }
 
 export function restartGame() {
-  Object.assign(player, { x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8, facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, magnetRange: 100, iframes: 0, alive: true });
+  Object.assign(player, { x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8, facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, powerStacks: 0, hasteStacks: 0, magnetRange: 100, iframes: 0, alive: true });
   player.weapons = [{ id: 'magic_missile', level: 1, _timer: 0 }];
   gameTime.value = 0; kills.value = 0; screenShake.value = 0; bossTimer.value = 0; firstBossSpawned = false; spawnTimer = 0; weatherTimer = 0; weatherDuration = getWeatherDuration(); weatherAnnounceTimer = 0;
   for (let a of [enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams]) {
@@ -191,7 +191,7 @@ export function restartGame() {
 
 export function startGame() {
   initGameRefs();
-  Object.assign(player, { x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8, facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, magnetRange: 100, iframes: 0, alive: true });
+  Object.assign(player, { x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8, facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, powerStacks: 0, hasteStacks: 0, magnetRange: 100, iframes: 0, alive: true });
   player.weapons = [{ id: 'magic_missile', level: 1, _timer: 0 }];
   currentWeather.value = WEATHER_TYPES.clear;
   weatherTimer = 0; weatherDuration = getWeatherDuration(); weatherAnnounceTimer = 0;
