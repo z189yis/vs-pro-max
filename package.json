@@ -2,6 +2,7 @@
   "name": "vs-pro-max",
   "version": "1.0.0",
   "description": "A vampire survivors style browser game",
+  "type": "module",
   "scripts": {
     "dev": "python -m http.server 8080",
     "serve": "python -m http.server 8080"

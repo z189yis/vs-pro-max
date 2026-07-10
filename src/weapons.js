@@ -1,5 +1,5 @@
 import { WDEF } from './config.js';
-import { rng, irng, dist, clamp, addToPool, addParticle, addDmgNumber, addLightningEffect, addFireExplosion, addConeEffect, addBlizzardZone, addFrostNovaEffect, addGarlicAura, addDisintegrateBeam, disintegrateBeams, distToSegment, onScreen } from './utils.js';
+import { rng, irng, dist, clamp, addToPool, compactPool, addParticle, addDmgNumber, addLightningEffect, addFireExplosion, addConeEffect, addBlizzardZone, addFrostNovaEffect, addGarlicAura, addDisintegrateBeam, disintegrateBeams, distToSegment, onScreen } from './utils.js';
 import { sfxShoot, sfxKnife, sfxGarlicTick, sfxAxe, sfxLightning, sfxLightningSpear, sfxIce, sfxFire, sfxBlizzard, sfxFrostNova, sfxBounce, sfxDisintegrate } from './audio.js';
 import { playerRef, gameRefs, enemyGrid, handleEnemyDeath } from './entities.js';
 
