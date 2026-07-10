@@ -3,7 +3,7 @@ import { W, H, camera, dist, rng, irng, clamp, lerp, randAngle, sx, sy, onScreen
   enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams,
   addParticle, addDmgNumber
 } from './utils.js';
-import { keys, joystick } from './input.js';
+import { keys, joystick, resetInput } from './input.js';
 import { playerRef, gameRefs, enemyGrid, setPlayer, setGameRefs, spawnEnemy, spawnWave, spawnBoss, handleEnemyDeath, dealDmg, applyElement, calcDamage, getElementalDamageMult, getElementalCdMult } from './entities.js';
 import { ws, fireWeapon, updateGarlicAura, updateBlizzardZones, updateDisintegrateBeams } from './weapons.js';
 import { sfxReaction, sfxPickup, sfxLevelUp, sfxPlayerHit, sfxGameOver, sfxBounce } from './audio.js';
@@ -92,6 +92,7 @@ export function getUpgradeOptions() {
 
 export function showUpgradePanel() {
   gameState.value = 'levelup';
+  resetInput();
   const options = getUpgradeOptions();
   const c = document.getElementById('upgrade-cards');
   c.innerHTML = '';
