@@ -632,7 +632,9 @@ export function drawBossWarning() {
 
 export function drawJoystick() {
   if (!joystick.active) return;
-  const bx = joystick.baseX, by = joystick.baseY, tx = bx + joystick.moveX * 70, ty = by + joystick.moveY * 70;
+  const bx = joystick.baseX, by = joystick.baseY;
+  const tx = clamp(bx + joystick.moveX * 70, 70, W.value - 70);
+  const ty = clamp(by + joystick.moveY * 70, 70, H.value - 70);
   ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = '#222244'; ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, by, 70, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.globalAlpha = 0.15; ctx.strokeStyle = '#888'; ctx.lineWidth = 1; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a) * 70 * 0.85, by + Math.sin(a) * 70 * 0.85); ctx.stroke(); }
   ctx.globalAlpha = 0.6; const tg = ctx.createRadialGradient(tx, ty, 70 * 0.2, tx, ty, 70); tg.addColorStop(0, '#8899cc'); tg.addColorStop(1, '#334466'); ctx.fillStyle = tg; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tx, ty, 70, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
