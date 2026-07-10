@@ -41,31 +41,10 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
     if (gs === 'postupgrade') {
       e.preventDefault();
       setPostUpgrade();
-      // allow immediate joystick activation from postupgrade tap
-      const W = window.innerWidth;
+      // allow immediate joystick activation from postupgrade tap anywhere
       for (let tch of e.changedTouches) {
+        if (touchId !== null) break;
         const p = tp(tch);
-        if (p.x < W / 2) {
-          touchId = tch.identifier;
-          joystick.active = true;
-          joystick.baseX = p.x;
-          joystick.baseY = p.y;
-          joystick.moveX = 0;
-          joystick.moveY = 0;
-          joystick.dist = 0;
-          joystick.angle = 0;
-          break;
-        }
-      }
-      return;
-    }
-    if (gs !== 'playing') return;
-    e.preventDefault();
-    if (touchId !== null) return;
-    const W = window.innerWidth;
-    for (let tch of e.changedTouches) {
-      const p = tp(tch);
-      if (p.x < W / 2) {
         touchId = tch.identifier;
         joystick.active = true;
         joystick.baseX = p.x;
@@ -74,8 +53,22 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
         joystick.moveY = 0;
         joystick.dist = 0;
         joystick.angle = 0;
-        break;
       }
+      return;
+    }
+    if (gs !== 'playing') return;
+    e.preventDefault();
+    for (let tch of e.changedTouches) {
+      if (touchId !== null) break;
+      const p = tp(tch);
+      touchId = tch.identifier;
+      joystick.active = true;
+      joystick.baseX = p.x;
+      joystick.baseY = p.y;
+      joystick.moveX = 0;
+      joystick.moveY = 0;
+      joystick.dist = 0;
+      joystick.angle = 0;
     }
   }, { passive: false });
 
