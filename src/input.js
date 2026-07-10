@@ -10,12 +10,11 @@ export function tp(t) { return { x: t.clientX, y: t.clientY }; }
 export function setupInput(canvas, getGameState, setPostUpgrade) {
   let mouseDown = false;
 
-  canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
+  window.addEventListener('touchstart', e => {
     const gs = getGameState();
-    if (gs === 'gameover') { window.__restartGame?.(); return; }
-    if (gs === 'title') { window.__startGame?.(); return; }
-    if (gs === 'postupgrade') { setPostUpgrade(); return; }
+    if (gs === 'postupgrade') { e.preventDefault(); setPostUpgrade(); return; }
+    if (gs !== 'playing') return;
+    e.preventDefault();
     const W = window.innerWidth;
     for (let tch of e.changedTouches) {
       const p = tp(tch);
@@ -30,7 +29,8 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
     }
   }, { passive: false });
 
-  canvas.addEventListener('touchmove', e => {
+  window.addEventListener('touchmove', e => {
+    if (getGameState() !== 'playing') return;
     e.preventDefault();
     const W = window.innerWidth;
     for (let tch of e.changedTouches) {
@@ -49,7 +49,8 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
     }
   }, { passive: false });
 
-  canvas.addEventListener('touchend', e => {
+  window.addEventListener('touchend', e => {
+    if (getGameState() !== 'playing') return;
     e.preventDefault();
     const W = window.innerWidth;
     let sa = false;
@@ -64,7 +65,8 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
     }
   }, { passive: false });
 
-  canvas.addEventListener('touchcancel', () => {
+  window.addEventListener('touchcancel', () => {
+    if (getGameState() !== 'playing') return;
     joystick.active = false;
     joystick.moveX = 0;
     joystick.moveY = 0;
