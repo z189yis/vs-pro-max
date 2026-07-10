@@ -197,6 +197,9 @@ export function startGame() {
   weatherTimer = 0; weatherDuration = getWeatherDuration(); weatherAnnounceTimer = 0;
   const banner = document.getElementById('weather-banner');
   if (banner) banner.classList.remove('active');
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('game-over').classList.remove('active');
+  document.getElementById('upgrade-overlay').classList.remove('active');
   updateWeaponsBar(); updateHUD();
   gameState.value = 'playing'; canvas.focus(); lastTime = 0;
 }
