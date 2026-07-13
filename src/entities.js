@@ -139,7 +139,15 @@ export function applyElement(e, element, dmg, sourceProj) {
         const near = enemyGrid.query(e.x, e.y, rx.aoe + 80);
         for (let e2 of near) {
           if (e2._dead || e2 === e || !e2.active) continue;
-          if (dist(e, e2) < rx.aoe + e2.size) { dealDmg(e2, rd * 0.6, null, ELEMENTS[element]?.color, element); }
+          if (dist(e, e2) < rx.aoe + e2.size) {
+            const aoeDmg = calcDamage(e2, rd * 0.6, element);
+            e2.hp -= aoeDmg;
+            e2.hitFlash = 0.08;
+            addDmgNumber(e2.x + rng(-8, 8), e2.y + rng(-8, 8), aoeDmg, ELEMENTS[element]?.color || '#fff');
+            e2.status = element;
+            e2.statusTimer = ELEMENT_STATUS_DURATION[element] || 2;
+            if (e2.hp <= 0) handleEnemyDeath(e2);
+          }
         }
       }
       if (rx.chain) {
@@ -147,9 +155,15 @@ export function applyElement(e, element, dmg, sourceProj) {
         for (let e2 of near) {
           if (e2._dead || e2 === e || !e2.active) continue;
           if (dist(e, e2) < rx.chain) {
-            dealDmg(e2, rd, null, '#ffff44', 'lightning');
+            const chainDmg = calcDamage(e2, rd, 'lightning');
+            e2.hp -= chainDmg;
+            e2.hitFlash = 0.08;
             e2.stun = Math.max(e2.stun, 0.5);
+            addDmgNumber(e2.x + rng(-8, 8), e2.y + rng(-8, 8), chainDmg, '#ffff44');
+            e2.status = 'lightning';
+            e2.statusTimer = ELEMENT_STATUS_DURATION.lightning;
             addToPool(gameRefs.lightningEffects, 100, { x: e2.x, y: e2.y, life: 0.25, maxLife: 0.25, aoe: 30, dmg: 0, segments: [{ x: e.x, y: e.y }, { x: e2.x, y: e2.y }] }, 'life');
+            if (e2.hp <= 0) handleEnemyDeath(e2);
           }
         }
       }
