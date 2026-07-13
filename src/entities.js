@@ -28,8 +28,9 @@ export function spawnEnemy(type = 'bat', ad = null) {
   const y = player.y + Math.sin(a) * dr;
   const td = ET[type];
   const t = gameTime.value;
-  let hs = 1 + t / 300;
-  if (t > 300) hs += Math.pow((t - 300) / 120, 1.5);
+  let hs = 1 + t / 200;
+  if (t > 180) hs += Math.pow((t - 180) / 80, 1.8);
+  if (t > 300) hs += Math.pow((t - 300) / 100, 2);
   let roll = Math.random();
   let ele = 'physical';
   if (currentWeather.value.id === 'rain') {
@@ -109,7 +110,7 @@ export function dealDmg(e, dmg, proj, color, element) {
 }
 
 export function applyElement(e, element, dmg, sourceProj) {
-  if (!element || element === 'physical' || element === 'arcane' || element === 'nature' || e._dead || !e.active) return;
+  if (!element || e._dead || !e.active) return;
   const player = playerRef.value;
   if (e.status && e.status !== element) {
     const key = e.status + '+' + element;
@@ -126,11 +127,19 @@ export function applyElement(e, element, dmg, sourceProj) {
         e.knockback.vx += Math.cos(ka) * rx.knockback;
         e.knockback.vy += Math.sin(ka) * rx.knockback;
       }
+      if (rx.stun) e.stun = Math.max(e.stun, rx.stun);
+      if (rx.freeze) e.freezeTimer = Math.max(e.freezeTimer, rx.freeze);
+      if (rx.slow) { e.slowAmount = Math.max(e.slowAmount, rx.slow); e.slowTimer = Math.max(e.slowTimer, rx.slowT || 2); }
+      if (rx.burn) { e.burnDmg = Math.max(e.burnDmg, rx.burn); e.burnTimer = Math.max(e.burnTimer, rx.burnT); }
+      if (rx.poison) { e.burnDmg = Math.max(e.burnDmg || 0, rx.poison); e.burnTimer = Math.max(e.burnTimer || 0, rx.poisonT); }
+      if (rx.armorBreak) e.defenseDown = Math.max(e.defenseDown, rx.armorBreak);
+      if (rx.blind) e.stun = Math.max(e.stun, rx.blind * 0.5);
+      if (rx.heal && player) player.hp = Math.min(player.maxHp, player.hp + rd * rx.heal);
       if (rx.aoe) {
         const near = enemyGrid.query(e.x, e.y, rx.aoe + 80);
         for (let e2 of near) {
           if (e2._dead || e2 === e || !e2.active) continue;
-          if (dist(e, e2) < rx.aoe + e2.size) { dealDmg(e2, rd * 0.6, null, ELEMENTS[element]?.color); applyElement(e2, element, rd * 0.6, null); }
+          if (dist(e, e2) < rx.aoe + e2.size) { dealDmg(e2, rd * 0.6, null, ELEMENTS[element]?.color, element); }
         }
       }
       if (rx.chain) {
@@ -138,7 +147,7 @@ export function applyElement(e, element, dmg, sourceProj) {
         for (let e2 of near) {
           if (e2._dead || e2 === e || !e2.active) continue;
           if (dist(e, e2) < rx.chain) {
-            dealDmg(e2, rd, null, '#ffff44');
+            dealDmg(e2, rd, null, '#ffff44', 'lightning');
             e2.stun = Math.max(e2.stun, 0.5);
             addToPool(gameRefs.lightningEffects, 100, { x: e2.x, y: e2.y, life: 0.25, maxLife: 0.25, aoe: 30, dmg: 0, segments: [{ x: e.x, y: e.y }, { x: e2.x, y: e2.y }] }, 'life');
           }
@@ -148,19 +157,16 @@ export function applyElement(e, element, dmg, sourceProj) {
         const near = enemyGrid.query(e.x, e.y, rx.spread).filter(en => !en._dead && en.active && en !== e);
         for (let e2 of near) { e2.status = 'lightning'; e2.statusTimer = ELEMENT_STATUS_DURATION.lightning; }
       }
-      if (rx.armorBreak) {
-        e.defenseDown = Math.max(e.defenseDown, rx.armorBreak);
-        const near = enemyGrid.query(e.x, e.y, rx.aoe + 80);
-        for (let e2 of near) {
-          if (e2._dead || e2 === e || !e2.active) continue;
-          if (dist(e, e2) < rx.aoe + e2.size) dealDmg(e2, rd * 0.5, null, '#88ccff');
-        }
-      }
       e.status = null;
       e.statusTimer = 0;
-      if (e.hp <= 0) handleEnemyDeath(e);
+      if (e.hp <= 0) { handleEnemyDeath(e); return; }
       return;
     }
+  }
+  if (element === 'physical' || element === 'arcane' || element === 'nature') {
+    e.status = element;
+    e.statusTimer = ELEMENT_STATUS_DURATION[element] || 1.5;
+    return;
   }
   e.status = element;
   e.statusTimer = ELEMENT_STATUS_DURATION[element] || 2;

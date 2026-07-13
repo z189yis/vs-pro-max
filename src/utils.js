@@ -139,6 +139,9 @@ export const blizzardZones = [];
 export const frostNovaEffects = [];
 export const disintegrateBeams = [];
 
+export const tidalWaves = [];
+export function addTidalWave(obj) { return addToPool(tidalWaves, 30, obj, 'life'); }
+
 export function addProjectile(obj) { return addToPool(projectiles, 400, obj, 'life'); }
 export function addLightningEffect(obj) { return addToPool(lightningEffects, 100, obj, 'life'); }
 export function addXPGem(obj) { return addToPool(xpGems, 300, obj, 'life'); }

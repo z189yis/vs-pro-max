@@ -1,7 +1,7 @@
 import { WDEF } from './config.js';
-import { rng, irng, dist, clamp, addToPool, compactPool, addParticle, addDmgNumber, addLightningEffect, addFireExplosion, addConeEffect, addBlizzardZone, addFrostNovaEffect, addGarlicAura, addDisintegrateBeam, disintegrateBeams, distToSegment, onScreen } from './utils.js';
-import { sfxShoot, sfxKnife, sfxGarlicTick, sfxAxe, sfxLightning, sfxLightningSpear, sfxIce, sfxFire, sfxBlizzard, sfxFrostNova, sfxBounce, sfxDisintegrate } from './audio.js';
-import { playerRef, gameRefs, enemyGrid, handleEnemyDeath } from './entities.js';
+import { rng, irng, dist, clamp, addToPool, compactPool, addParticle, addDmgNumber, addLightningEffect, addFireExplosion, addConeEffect, addBlizzardZone, addFrostNovaEffect, addGarlicAura, addDisintegrateBeam, addTidalWave, disintegrateBeams, distToSegment, onScreen, tidalWaves } from './utils.js';
+import { sfxShoot, sfxKnife, sfxGarlicTick, sfxAxe, sfxLightning, sfxLightningSpear, sfxIce, sfxFire, sfxBlizzard, sfxFrostNova, sfxBounce, sfxDisintegrate, sfxTidalWave } from './audio.js';
+import { playerRef, gameRefs, enemyGrid, handleEnemyDeath, dealDmg } from './entities.js';
 
 export function ws(w) { return WDEF[w.id].stats[clamp(w.level - 1, 0, 7)]; }
 
@@ -148,10 +148,8 @@ export function fireWeapon(weapon) {
       for (let e of gameRefs.enemies) {
         if (!e.active || e._dead) continue;
         if (dist(player, e) < s.r + e.size) {
-          e.hp -= pd;
-          e.hitFlash = 0.12;
+          dealDmg(e, pd, null, '#aaddff', 'ice');
           e.freezeTimer = Math.max(e.freezeTimer, s.freeze);
-          addDmgNumber(e.x + rng(-8, 8), e.y + rng(-8, 8), pd, '#aaddff');
           if (e.hp <= 0) handleEnemyDeath(e);
         }
       }
@@ -184,6 +182,20 @@ export function fireWeapon(weapon) {
       if (gameRefs.screenShake) gameRefs.screenShake.value = Math.max(gameRefs.screenShake.value, 1);
       break;
     }
+    case 'tidal_wave': {
+      sfxTidalWave();
+      for (let i = 0; i < s.n; i++) {
+        const spread = (i - (s.n - 1) / 2) * (Math.PI / 8);
+        const a = player.facingAngle + spread;
+        addTidalWave({
+          x: player.x + Math.cos(a) * 30, y: player.y + Math.sin(a) * 30,
+          angle: a, spd: s.spd, range: s.range, width: s.w,
+          dmg: pd, knock: s.knock, slow: s.slow, slowT: s.slowT,
+          life: s.range / s.spd, maxLife: s.range / s.spd, dist: 0, hit: []
+        });
+      }
+      break;
+    }
   }
 }
 
@@ -203,9 +215,7 @@ export function updateGarlicAura(dt) {
       const d = dist(player, e);
       if (d < s.r + e.size) {
         const dmg = s.d * player.dmgMult;
-        e.hp -= dmg;
-        e.hitFlash = 0.1;
-        addDmgNumber(e.x + rng(-10, 10), e.y + rng(-10, 10), dmg, '#aadd88');
+        dealDmg(e, dmg, null, '#aadd88', 'nature');
         const ka = Math.atan2(e.y - player.y, e.x - player.x);
         e.knockback.vx += Math.cos(ka) * s.k;
         e.knockback.vy += Math.sin(ka) * s.k;
@@ -226,11 +236,9 @@ export function updateBlizzardZones(dt) {
         if (!e.active || e._dead) continue;
         const d = dist(b, e);
         if (d < b.radius + e.size) {
-          e.hp -= b.dmg;
-          e.hitFlash = 0.08;
+          dealDmg(e, b.dmg, null, '#88ccff', 'ice');
           e.slowAmount = Math.max(e.slowAmount, b.slow);
           e.slowTimer = Math.max(e.slowTimer, b.slowT);
-          addDmgNumber(e.x + rng(-8, 8), e.y + rng(-8, 8), b.dmg, '#88ccff');
           if (e.hp <= 0) handleEnemyDeath(e);
         }
       }
@@ -254,13 +262,50 @@ export function updateDisintegrateBeams(dt) {
         if (!e.active || e._dead) continue;
         const d = distToSegment(e.x, e.y, b.x, b.y, b.endX, b.endY);
         if (d < b.width + e.size) {
-          e.hp -= b.dmg;
-          e.hitFlash = 0.06;
-          addDmgNumber(e.x + rng(-6, 6), e.y + rng(-6, 6), b.dmg, '#ff66ff');
+          dealDmg(e, b.dmg, null, '#ff66ff', 'arcane');
           if (e.hp <= 0) handleEnemyDeath(e);
         }
       }
     }
   }
   compactPool(disintegrateBeams, b => b.life <= 0);
+}
+
+export function updateTidalWaves(dt) {
+  const player = playerRef.value;
+  for (let w of tidalWaves) {
+    if (!w.active) continue;
+    w.life -= dt;
+    w.x += Math.cos(w.angle) * w.spd * dt;
+    w.y += Math.sin(w.angle) * w.spd * dt;
+    w.dist += w.spd * dt;
+    if (w.dist > w.range) { w.active = false; continue; }
+    const halfW = w.width * 0.5;
+    const perpA = w.angle + Math.PI / 2;
+    const ex = w.x + Math.cos(perpA) * halfW;
+    const ey = w.y + Math.sin(perpA) * halfW;
+    const sx2 = w.x - Math.cos(perpA) * halfW;
+    const sy2 = w.y - Math.sin(perpA) * halfW;
+    const near = enemyGrid.query(w.x, w.y, w.range * 0.5 + halfW + 80);
+    for (let e of near) {
+      if (!e.active || e._dead) continue;
+      const d = distToSegment(e.x, e.y, sx2, sy2, ex, ey);
+      if (d < halfW + e.size && !w.hit.includes(e)) {
+        w.hit.push(e);
+        dealDmg(e, w.dmg, null, '#44aaff', 'water');
+        e.slowAmount = Math.max(e.slowAmount, w.slow);
+        e.slowTimer = Math.max(e.slowTimer, w.slowT);
+        const ka = Math.atan2(e.y - w.y, e.x - w.x);
+        e.knockback.vx += Math.cos(ka) * w.knock;
+        e.knockback.vy += Math.sin(ka) * w.knock;
+        if (e.hp <= 0) handleEnemyDeath(e);
+      }
+    }
+    if (Math.random() < dt * 8) {
+      const px = sx2 + Math.random() * (ex - sx2);
+      const py = sy2 + Math.random() * (ey - sy2);
+      addParticle(px, py, '#88ccff', 1, 50, 0.3, 2);
+    }
+  }
+  compactPool(tidalWaves, w => w.life <= 0 || w.dist > w.range);
 }

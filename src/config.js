@@ -192,6 +192,24 @@ export const WDEF = {
       { n: 1, cd: 2.1, d: 50, r: 130, freeze: 1.6 },
       { n: 1, cd: 1.7, d: 60, r: 155, freeze: 2.0 }
     ]
+  },
+  tidal_wave: {
+    id: 'tidal_wave',
+    name: '潮水',
+    icon: '🌊',
+    color: '#44aaff',
+    element: 'water',
+    descs: ['推出 1 道弧形潮水 · 宽度 90 · 潮湿 3s', '伤害 +3 · 宽度 +15', '潮水 +1 · 冷却 -0.3s', '伤害 +4 · 宽度 +20', '击退 +30 · 冷却 -0.3s', '潮水 +1 · 伤害 +5', '宽度 +25 · 减速 +10%', '潮水 +2 · 伤害 +8 · 宽度 +30'],
+    stats: [
+      { n: 1, cd: 3.0, d: 16, w: 90, range: 360, spd: 260, knock: 60, slow: 0.25, slowT: 2 },
+      { n: 1, cd: 2.8, d: 19, w: 105, range: 370, spd: 270, knock: 60, slow: 0.25, slowT: 2 },
+      { n: 2, cd: 2.5, d: 22, w: 105, range: 380, spd: 280, knock: 60, slow: 0.30, slowT: 2.2 },
+      { n: 2, cd: 2.3, d: 26, w: 125, range: 390, spd: 290, knock: 60, slow: 0.30, slowT: 2.2 },
+      { n: 2, cd: 2.0, d: 30, w: 125, range: 400, spd: 300, knock: 90, slow: 0.35, slowT: 2.5 },
+      { n: 3, cd: 1.7, d: 35, w: 125, range: 420, spd: 310, knock: 90, slow: 0.35, slowT: 2.5 },
+      { n: 3, cd: 1.4, d: 40, w: 150, range: 430, spd: 320, knock: 90, slow: 0.45, slowT: 3 },
+      { n: 5, cd: 1.1, d: 48, w: 180, range: 450, spd: 340, knock: 120, slow: 0.50, slowT: 3.5 }
+    ]
   }
 };
 
@@ -213,7 +231,7 @@ export const ELEMENTS = {
   arcane: { name: '奥术', icon: '✨', color: '#66ccff' }
 };
 
-export const ELEMENT_STATUS_DURATION = { fire: 3, ice: 2.5, lightning: 2, water: 5 };
+export const ELEMENT_STATUS_DURATION = { fire: 3, ice: 2.5, lightning: 2, water: 5, physical: 2, arcane: 2, nature: 2.5 };
 
 export const ELEMENT_REACTIONS = {
   'fire+ice': { name: '融化', mult: 2.0, knockback: 0, aoe: 0, particles: 'steam' },
@@ -221,7 +239,41 @@ export const ELEMENT_REACTIONS = {
   'water+lightning': { name: '感电', mult: 0.8, chain: 80, particles: 'spark' },
   'lightning+water': { name: '电解', mult: 1.8, spread: 120, particles: 'spark' },
   'fire+lightning': { name: '超载', mult: 1.5, knockback: 120, aoe: 100, particles: 'explosion' },
-  'ice+lightning': { name: '超导', mult: 1.3, armorBreak: 3, aoe: 90, particles: 'ice' }
+  'ice+lightning': { name: '超导', mult: 1.3, armorBreak: 3, aoe: 90, particles: 'ice' },
+  'fire+water': { name: '汽化', mult: 1.6, aoe: 80, blind: 2, particles: 'steam' },
+  'water+fire': { name: '沸腾', mult: 1.4, burn: 8, burnT: 3, aoe: 50, particles: 'fire' },
+  'ice+water': { name: '冻结', mult: 0.6, freeze: 1.2, aoe: 60, particles: 'ice' },
+  'water+ice': { name: '寒流', mult: 1.1, slow: 0.5, slowT: 3, aoe: 70, particles: 'ice' },
+  'physical+fire': { name: '爆燃', mult: 1.4, aoe: 70, knockback: 60, particles: 'explosion' },
+  'fire+physical': { name: '重击', mult: 1.3, stun: 0.6, knockback: 80, particles: 'explosion' },
+  'physical+ice': { name: '碎冰', mult: 1.5, aoe: 60, armorBreak: 2, particles: 'ice' },
+  'ice+physical': { name: '凿击', mult: 1.4, stun: 0.5, particles: 'ice' },
+  'physical+lightning': { name: '雷击', mult: 1.3, chain: 60, particles: 'spark' },
+  'lightning+physical': { name: '麻痹', mult: 1.2, stun: 0.8, particles: 'spark' },
+  'physical+water': { name: '溃堤', mult: 1.2, knockback: 100, aoe: 50, particles: 'steam' },
+  'water+physical': { name: '潮湿打击', mult: 1.3, slow: 0.35, slowT: 2, particles: 'steam' },
+  'arcane+fire': { name: '奥术燃烧', mult: 1.5, burn: 10, burnT: 4, particles: 'fire' },
+  'fire+arcane': { name: '魔力爆裂', mult: 1.7, aoe: 90, particles: 'explosion' },
+  'arcane+ice': { name: '霜蚀', mult: 1.4, armorBreak: 3, aoe: 60, particles: 'ice' },
+  'ice+arcane': { name: '晶化', mult: 1.3, freeze: 0.8, aoe: 50, particles: 'ice' },
+  'arcane+lightning': { name: '奥能风暴', mult: 1.6, chain: 100, aoe: 70, particles: 'spark' },
+  'lightning+arcane': { name: '过载', mult: 1.4, stun: 1, aoe: 60, particles: 'spark' },
+  'arcane+water': { name: '洪流', mult: 1.3, aoe: 80, knockback: 50, particles: 'steam' },
+  'water+arcane': { name: '秘法潮汐', mult: 1.5, slow: 0.4, slowT: 3, aoe: 60, particles: 'steam' },
+  'nature+fire': { name: '野火', mult: 1.4, burn: 12, burnT: 4, aoe: 60, particles: 'fire' },
+  'fire+nature': { name: '枯萎', mult: 1.2, aoe: 70, particles: 'steam' },
+  'nature+ice': { name: '霜冻', mult: 1.3, slow: 0.45, slowT: 3, aoe: 50, particles: 'ice' },
+  'ice+nature': { name: '休眠', mult: 1.1, freeze: 1, aoe: 60, particles: 'ice' },
+  'nature+lightning': { name: '生电', mult: 1.3, chain: 70, particles: 'spark' },
+  'lightning+nature': { name: '激化', mult: 1.6, aoe: 80, particles: 'spark' },
+  'nature+water': { name: '滋长', mult: 1.2, heal: 0.05, aoe: 60, particles: 'steam' },
+  'water+nature': { name: '沼泽', mult: 0.9, slow: 0.55, slowT: 4, aoe: 80, particles: 'steam' },
+  'physical+arcane': { name: '破魔', mult: 1.5, armorBreak: 3, aoe: 50, particles: 'explosion' },
+  'arcane+physical': { name: '回响', mult: 1.4, chain: 50, particles: 'spark' },
+  'physical+nature': { name: '毒刺', mult: 1.3, poison: 6, poisonT: 3, particles: 'steam' },
+  'nature+physical': { name: '荆棘', mult: 1.1, reflect: 0.3, aoe: 50, particles: 'steam' },
+  'arcane+nature': { name: '魔藤', mult: 1.3, slow: 0.4, slowT: 3, aoe: 60, particles: 'spark' },
+  'nature+arcane': { name: '绽放', mult: 1.5, aoe: 70, particles: 'spark' }
 };
 
 export const WEATHER_TYPES = {
