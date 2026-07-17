@@ -16,6 +16,9 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 #weapons-bar { position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 10; pointer-events: none; }
 .weapon-icon { width: 36px; height: 36px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; position: relative; }
 .weapon-icon .lv { position: absolute; bottom: -2px; right: -2px; background: #ffcc44; color: #000; font-size: 9px; font-weight: bold; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; line-height: 1; }
+#synergy-bar { position: absolute; bottom: 96px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 10; pointer-events: none; flex-wrap: wrap; justify-content: center; max-width: 90vw; }
+.synergy-chip { padding: 3px 10px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; font-size: 11px; color: #aaa; white-space: nowrap; }
+.synergy-chip.active { border-color: #ffcc44; color: #ffcc44; font-weight: bold; box-shadow: 0 0 8px rgba(255,200,50,0.3); }
 #upgrade-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 100; }
 #upgrade-overlay.active { display: flex; }
 #upgrade-title { color: #ffcc44; font-size: 28px; font-weight: bold; margin-bottom: 24px; text-shadow: 0 0 20px rgba(255,200,50,0.5); animation: pulse 1s ease-in-out infinite; }
@@ -27,6 +30,7 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 .upgrade-card .card-name { font-size: 16px; font-weight: bold; color: #ffcc44; margin-bottom: 4px; }
 .upgrade-card .card-level { font-size: 12px; color: #aaa; margin-bottom: 8px; }
 .upgrade-card .card-desc { font-size: 11px; color: #aab; line-height: 1.4; }
+.upgrade-card .card-synergy { font-size: 10px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); font-weight: bold; }
 .upgrade-card .card-new { display: inline-block; background: #ff4444; color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-bottom: 4px; }
 #weather-banner { position: absolute; top: 64px; left: 50%; transform: translateX(-50%) translateY(-80px); padding: 10px 28px; background: rgba(20,20,40,0.85); border: 1px solid rgba(255,255,255,0.2); border-radius: 30px; color: #ffcc44; font-size: 18px; font-weight: bold; text-shadow: 0 0 12px rgba(255,200,50,0.6); pointer-events: none; z-index: 15; opacity: 0; transition: transform 0.5s ease, opacity 0.5s ease; }
 #weather-banner.active { transform: translateX(-50%) translateY(0); opacity: 1; }
@@ -51,9 +55,10 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 </head>
 <body>
 <canvas id="game" tabindex="0"></canvas>
-<div id="hud"><div class="hud-item">🕐 <span id="hud-time">00:00</span></div><div class="hud-item">💀 <span id="hud-kills">0</span></div><div class="hud-item">⭐ Lv.<span id="hud-level">1</span></div><div class="hud-item">❤️ <span id="hud-hp">100</span></div><div id="hud-weather" class="hud-item" title="天气效果">☀️ 晴朗</div></div>
+<div id="hud"><div class="hud-item">🕐 <span id="hud-time">00:00</span></div><div class="hud-item">💀 <span id="hud-kills">0</span></div><div class="hud-item">⭐ Lv.<span id="hud-level">1</span></div><div class="hud-item">❤️ <span id="hud-hp">100</span></div><div class="hud-item" id="hud-shield" style="display:none">🛡️</div><div id="hud-weather" class="hud-item" title="天气效果">☀️ 晴朗</div></div>
 <div id="xp-bar-wrap"><div id="xp-bar-fill" style="width:0%"></div></div>
 <div id="weapons-bar"></div>
+<div id="synergy-bar"></div>
 <div id="weather-banner"></div>
 <div id="upgrade-overlay"><div id="upgrade-title">⬆ 选择升级</div><div id="upgrade-cards"></div></div>
 <div id="game-over" onclick="if(window.__restartGame)window.__restartGame()"><h1>游戏结束</h1><div class="stats">🕐 生存时间: <span id="go-time">00:00</span></div><div class="stats">💀 击杀数: <span id="go-kills">0</span></div><div class="stats">⭐ 等级: <span id="go-level">1</span></div><div class="hint"><span class="ctrl-desk">按 Enter 重新开始</span><span class="ctrl-mobile">点击屏幕重新开始</span></div></div>

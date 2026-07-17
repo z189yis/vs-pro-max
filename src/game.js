@@ -1,17 +1,37 @@
-import { WDEF, PASSIVES, WEATHER_TYPES, getWeatherDuration } from './config.js';
+import { WDEF, PASSIVES, WEATHER_TYPES, getWeatherDuration, ATTACK, SYNERGIES, MAX_WEAPONS, ELEMENTS } from './config.js';
 import { W, H, camera, dist, rng, irng, clamp, lerp, randAngle, sx, sy, onScreen, addToPool, compactPool, compactTrail, countActive,
   enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams, tidalWaves,
   addParticle, addDmgNumber
 } from './utils.js';
 import { keys, joystick, resetInput } from './input.js';
 import { playerRef, gameRefs, enemyGrid, setPlayer, setGameRefs, spawnEnemy, spawnWave, spawnBoss, handleEnemyDeath, dealDmg, applyElement, calcDamage, getElementalDamageMult, getElementalCdMult } from './entities.js';
-import { ws, fireWeapon, updateGarlicAura, updateBlizzardZones, updateDisintegrateBeams, updateTidalWaves } from './weapons.js';
-import { sfxReaction, sfxPickup, sfxLevelUp, sfxPlayerHit, sfxGameOver, sfxBounce } from './audio.js';
+import { ws, fireWeapon, fireAttack, updateGarlicAura, updateBlizzardZones, updateDisintegrateBeams, updateTidalWaves, updateSynergyEffects } from './weapons.js';
+import { sfxReaction, sfxPickup, sfxLevelUp, sfxPlayerHit, sfxGameOver, sfxBounce, sfxShoot } from './audio.js';
 
 export const player = {
   x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8,
   facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, powerStacks: 0, hasteStacks: 0, magnetRange: 100,
-  weapons: [], iframes: 0, alive: true
+  weapons: [], iframes: 0, alive: true,
+  // 普攻
+  attackTimer: 0, attackCdMult: 1, attackDmgBonus: 0, attackSpeedStacks: 0,
+  // 防御
+  armorStacks: 0, dmgTakenMult: 1, regenRate: 0,
+  // 羁绊状态
+  synergies: {},
+  // 火
+  synergyFireSplit: false, synergyBurnStacks: 0, synergyFireExplode: false,
+  // 冰
+  synergyIcePierce: 0, synergyBlizzardRadius: 1, synergyIceShatter: false,
+  // 雷
+  synergyLightningExtra: 0, synergyThunderCharge: false, thunderChargeReady: false,
+  // 水
+  synergyWaveWidth: 1, synergyKnockMult: 1, synergyWaterBurst: false,
+  // 物理
+  synergyKnifeBounce: 0, synergyAxeExtra: 0, synergyAttackPierce: false, synergyAttackBounce: 0,
+  // 奥术
+  synergyMissileBounce: 0, synergyBeamWidth: 1, synergyArcaneReset: 0,
+  // 自然
+  synergyGarlicRadius: 1, synergyGarlicSlow: 0, synergyNatureOrb: false
 };
 
 export const gameState = { value: 'title' };
@@ -42,7 +62,8 @@ export function initGameRefs() {
   setGameRefs({
     gameState, gameTime, kills, screenShake, enemies, projectiles, xpGems, particles, dmgNumbers,
     lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones,
-    frostNovaEffects, disintegrateBeams, tidalWaves, currentWeather, player
+    frostNovaEffects, disintegrateBeams, tidalWaves, currentWeather, player,
+    onEnemyDeath: (e) => { onEnemyDeathSynergy(e); }
   });
 }
 
@@ -72,18 +93,82 @@ export function showWeatherBanner() {
   setTimeout(() => banner.classList.remove('active'), 3500);
 }
 
+// ===== 羁绊系统 =====
+
+// 计算当前羁绊计数
+export function countSynergies() {
+  const counts = {};
+  for (let w of player.weapons) {
+    const el = WDEF[w.id].element;
+    counts[el] = (counts[el] || 0) + 1;
+  }
+  return counts;
+}
+
+// 应用羁绊效果
+export function applySynergies() {
+  // 重置所有羁绊效果
+  player.synergyFireSplit = false; player.synergyBurnStacks = 0; player.synergyFireExplode = false;
+  player.synergyIcePierce = 0; player.synergyBlizzardRadius = 1; player.synergyIceShatter = false;
+  player.synergyLightningExtra = 0; player.synergyThunderCharge = false; player.thunderChargeReady = false;
+  player.synergyWaveWidth = 1; player.synergyKnockMult = 1; player.synergyWaterBurst = false;
+  player.synergyKnifeBounce = 0; player.synergyAxeExtra = 0; player.synergyAttackPierce = false; player.synergyAttackBounce = 0;
+  player.synergyMissileBounce = 0; player.synergyBeamWidth = 1; player.synergyArcaneReset = 0;
+  player.synergyGarlicRadius = 1; player.synergyGarlicSlow = 0; player.synergyNatureOrb = false;
+
+  const counts = countSynergies();
+  player.synergies = {};
+
+  for (let [el, count] of Object.entries(counts)) {
+    const syn = SYNERGIES[el];
+    if (!syn) continue;
+    // 找到最高达成的档位
+    let activeTier = null;
+    for (let tier of syn.tiers) {
+      if (count >= tier.count) activeTier = tier;
+    }
+    if (activeTier) {
+      activeTier.apply(player);
+      player.synergies[el] = { count, tier: activeTier, maxed: count >= syn.tiers[syn.tiers.length - 1].count };
+    } else {
+      player.synergies[el] = { count, tier: null, maxed: false };
+    }
+  }
+}
+
+// 获取羁绊进度描述（用于 UI）
+export function getSynergyProgress(el) {
+  const syn = SYNERGIES[el];
+  if (!syn) return null;
+  const counts = countSynergies();
+  const count = counts[el] || 0;
+  const nextTier = syn.tiers.find(t => count < t.count);
+  const activeTier = syn.tiers.filter(t => count >= t.count).pop();
+  return { count, nextTier, activeTier, tiers: syn.tiers, element: el };
+}
+
+// ===== 升级系统 =====
+
 export function getUpgradeOptions() {
   let o = [];
-  for (let w of player.weapons) { if (w.level < 8) o.push({ type: 'weapon', weaponId: w.id }); }
+  // 新武器选项（未满上限时）
   const oids = new Set(player.weapons.map(w => w.id));
-  for (let [id] of Object.entries(WDEF)) { if (!oids.has(id) && player.weapons.length < 7) o.push({ type: 'new_weapon', weaponId: id }); }
+  if (player.weapons.length < MAX_WEAPONS) {
+    for (let [id] of Object.entries(WDEF)) { if (!oids.has(id)) o.push({ type: 'new_weapon', weaponId: id }); }
+  }
+  // 被动属性选项
   for (let p of PASSIVES) o.push({ type: 'passive', passiveId: p.id });
+  // 打乱
   for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
-  const wo = o.filter(x => x.type === 'weapon' || x.type === 'new_weapon');
+  // 分离武器和被动
+  const wo = o.filter(x => x.type === 'new_weapon');
   const po = o.filter(x => x.type === 'passive');
   let r = [];
-  r.push(...wo.slice(0, 3));
+  // 优先给 2 个武器选项（如果有）
+  r.push(...wo.slice(0, 2));
+  // 填充被动到 4 个
   while (r.length < 4) { const x = po[Math.floor(Math.random() * po.length)]; if (!r.includes(x)) r.push(x); else r.push(po[Math.floor(Math.random() * po.length)]); }
+  // 去重
   const seen = new Set(), final = [];
   for (let x of r) { const k = x.type + '_' + (x.weaponId || x.passiveId); if (!seen.has(k)) { seen.add(k); final.push(x); } }
   while (final.length < 4 && po.length > 0) { final.push(po[Math.floor(Math.random() * po.length)]); if (final.length > 4) break; }
@@ -100,30 +185,33 @@ export function showUpgradePanel() {
   for (let o of options) {
     const card = document.createElement('div');
     card.className = 'upgrade-card';
-    let icon, name, desc, ls;
-    if (o.type === 'weapon') {
-      const w = player.weapons.find(w => w.id === o.weaponId);
+    let icon, name, desc, ls, synergyInfo = '';
+    if (o.type === 'new_weapon') {
       const d = WDEF[o.weaponId];
-      icon = d.icon; name = d.name; ls = `Lv.${w.level} → Lv.${w.level + 1}`; desc = d.descs[w.level];
-    } else if (o.type === 'new_weapon') {
-      const d = WDEF[o.weaponId];
-      icon = d.icon; name = d.name; ls = '<span class="card-new">NEW</span>'; desc = d.descs[0];
+      icon = d.icon; name = d.name; ls = '<span class="card-new">NEW</span>'; desc = d.desc;
+      // 显示羁绊进度
+      const prog = getSynergyProgress(d.element);
+      if (prog && prog.nextTier) {
+        const el = ELEMENTS[d.element];
+        synergyInfo = `<div class="card-synergy" style="color:${el.color}">${el.icon} ${el.name}羁绊: ${prog.count}/${prog.nextTier.count}</div>`;
+      } else if (prog && prog.activeTier) {
+        const el = ELEMENTS[d.element];
+        synergyInfo = `<div class="card-synergy" style="color:${el.color}">${el.icon} ${prog.activeTier.name} 已激活</div>`;
+      }
     } else {
       const p = PASSIVES.find(p => p.id === o.passiveId);
-      icon = p.icon; name = p.name; ls = '被动'; desc = p.desc;
+      icon = p.icon; name = p.name; ls = '属性'; desc = p.desc;
     }
-    card.innerHTML = `<div class="card-icon">${icon}</div><div class="card-name">${name}</div><div class="card-level">${ls}</div><div class="card-desc">${desc}</div>`;
+    card.innerHTML = `<div class="card-icon">${icon}</div><div class="card-name">${name}</div><div class="card-level">${ls}</div><div class="card-desc">${desc}</div>${synergyInfo}`;
     card.addEventListener('click', () => applyUpgrade(o));
     c.appendChild(card);
   }
 }
 
 export function applyUpgrade(o) {
-  if (o.type === 'weapon') {
-    const w = player.weapons.find(w => w.id === o.weaponId);
-    w.level++; w._timer = 0;
-  } else if (o.type === 'new_weapon') {
-    player.weapons.push({ id: o.weaponId, level: 1, _timer: 0 });
+  if (o.type === 'new_weapon') {
+    player.weapons.push({ id: o.weaponId, _timer: 0 });
+    applySynergies(); // 重新计算羁绊
   } else {
     const p = PASSIVES.find(p => p.id === o.passiveId);
     p.a(player);
@@ -132,6 +220,7 @@ export function applyUpgrade(o) {
   gameState.value = 'postupgrade';
   lastTime = 0;
   updateWeaponsBar();
+  updateSynergyBar();
 }
 
 export function updateHUD() {
@@ -157,9 +246,37 @@ export function updateWeaponsBar() {
     const d = WDEF[w.id];
     const el = document.createElement('div');
     el.className = 'weapon-icon';
-    el.innerHTML = `${d.icon}<span class="lv">${w.level}</span>`;
-    el.title = `${d.name} Lv.${w.level}`;
+    const elColor = ELEMENTS[d.element]?.color || '#fff';
+    el.innerHTML = `${d.icon}`;
+    el.title = `${d.name} · ${ELEMENTS[d.element]?.name || ''}`;
+    el.style.borderColor = elColor;
     b.appendChild(el);
+  }
+}
+
+export function updateSynergyBar() {
+  const bar = document.getElementById('synergy-bar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  const counts = countSynergies();
+  for (let [el, count] of Object.entries(counts)) {
+    const syn = SYNERGIES[el];
+    if (!syn) continue;
+    const elDef = ELEMENTS[el];
+    const prog = getSynergyProgress(el);
+    const chip = document.createElement('div');
+    chip.className = 'synergy-chip';
+    let text = `${elDef.icon}${count}`;
+    if (prog.activeTier) {
+      chip.classList.add('active');
+      text += ` ${prog.activeTier.name}`;
+      chip.style.borderColor = elDef.color;
+    } else if (prog.nextTier) {
+      text += `/${prog.nextTier.count}`;
+    }
+    chip.textContent = text;
+    chip.title = syn.tiers.map(t => `${t.count}件: ${t.name} - ${t.desc}`).join('\n');
+    bar.appendChild(chip);
   }
 }
 
@@ -172,9 +289,28 @@ export function showGameOver() {
   sfxGameOver();
 }
 
+function resetPlayer() {
+  Object.assign(player, {
+    x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8,
+    facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, powerStacks: 0, hasteStacks: 0, magnetRange: 100,
+    iframes: 0, alive: true,
+    attackTimer: 0, attackCdMult: 1, attackDmgBonus: 0, attackSpeedStacks: 0,
+    armorStacks: 0, dmgTakenMult: 1, regenRate: 0,
+    synergies: {},
+    synergyFireSplit: false, synergyBurnStacks: 0, synergyFireExplode: false,
+    synergyIcePierce: 0, synergyBlizzardRadius: 1, synergyIceShatter: false,
+    synergyLightningExtra: 0, synergyThunderCharge: false, thunderChargeReady: false,
+    synergyWaveWidth: 1, synergyKnockMult: 1, synergyWaterBurst: false,
+    synergyKnifeBounce: 0, synergyAxeExtra: 0, synergyAttackPierce: false, synergyAttackBounce: 0,
+    synergyMissileBounce: 0, synergyBeamWidth: 1, synergyArcaneReset: 0,
+    synergyGarlicRadius: 1, synergyGarlicSlow: 0, synergyNatureOrb: false
+  });
+  player.weapons = [{ id: 'magic_missile', _timer: 0 }];
+  applySynergies();
+}
+
 export function restartGame() {
-  Object.assign(player, { x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8, facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, powerStacks: 0, hasteStacks: 0, magnetRange: 100, iframes: 0, alive: true });
-  player.weapons = [{ id: 'magic_missile', level: 1, _timer: 0 }];
+  resetPlayer();
   gameTime.value = 0; kills.value = 0; screenShake.value = 0; bossTimer.value = 0; firstBossSpawned = false; spawnTimer = 0; weatherTimer = 0; weatherDuration = getWeatherDuration(); weatherAnnounceTimer = 0;
   for (let a of [enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams, tidalWaves]) {
     for (let i = 0; i < a.length; i++) a[i].active = false;
@@ -186,14 +322,13 @@ export function restartGame() {
   document.getElementById('game-over').classList.remove('active');
   document.getElementById('upgrade-overlay').classList.remove('active');
   document.getElementById('title-screen').style.display = 'none';
-  updateWeaponsBar(); updateHUD();
+  updateWeaponsBar(); updateHUD(); updateSynergyBar();
   gameState.value = 'playing'; lastTime = 0; canvas.focus();
 }
 
 export function startGame() {
   initGameRefs();
-  Object.assign(player, { x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8, facingAngle: 0, angle: 0, dmgMult: 1, cdMult: 1, powerStacks: 0, hasteStacks: 0, magnetRange: 100, iframes: 0, alive: true });
-  player.weapons = [{ id: 'magic_missile', level: 1, _timer: 0 }];
+  resetPlayer();
   currentWeather.value = WEATHER_TYPES.clear;
   weatherTimer = 0; weatherDuration = getWeatherDuration(); weatherAnnounceTimer = 0;
   const banner = document.getElementById('weather-banner');
@@ -201,7 +336,7 @@ export function startGame() {
   document.getElementById('title-screen').style.display = 'none';
   document.getElementById('game-over').classList.remove('active');
   document.getElementById('upgrade-overlay').classList.remove('active');
-  updateWeaponsBar(); updateHUD();
+  updateWeaponsBar(); updateHUD(); updateSynergyBar();
   gameState.value = 'playing'; canvas.focus(); lastTime = 0;
 }
 
@@ -219,6 +354,89 @@ export function seekTarget(p, dt) {
   p.y += Math.sin(p.angle) * p.spd * dt;
 }
 
+// ===== 羁绊击杀钩子 =====
+
+function onEnemyDeathSynergy(e) {
+  onFireExplode(e);
+  onIceShatter(e);
+  onThunderChargeDrop(e);
+  onWaterBurst(e);
+}
+
+// 火4件：击杀爆炸扩散点燃
+function onFireExplode(e) {
+  if (!player.synergyFireExplode) return;
+  const near = enemyGrid.query(e.x, e.y, 60);
+  for (let e2 of near) {
+    if (e2._dead || e2 === e || !e2.active) continue;
+    if (dist(e, e2) < 60 + e2.size) {
+      // 点燃可叠加
+      if (player.synergyBurnStacks > 0) {
+        e2.burnDmg = Math.min(e2.burnDmg + 3, 15);
+      } else {
+        e2.burnDmg = Math.max(e2.burnDmg, 5);
+      }
+      e2.burnTimer = Math.max(e2.burnTimer, 3);
+      dealDmg(e2, 12 * player.dmgMult, null, '#ff6622', 'fire');
+      if (e2.hp <= 0) handleEnemyDeath(e2);
+    }
+  }
+  addParticle(e.x, e.y, '#ff6622', 8, 80, 0.4, 4);
+}
+
+// 冰4件：冻结敌人死亡时释放 6 向冰锥散射
+function onIceShatter(e) {
+  if (!player.synergyIceShatter || e.freezeTimer <= 0) return;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    addToPool(gameRefs.projectiles, 400, {
+      x: e.x, y: e.y, vx: Math.cos(a) * 300, vy: Math.sin(a) * 300,
+      spd: 300, angle: a, dmg: 20 * player.dmgMult, pierce: 0, life: 1.0,
+      type: 'ice_shard_synergy', element: 'ice', color: '#aaddff', size: 4, trail: []
+    }, 'life');
+  }
+  addParticle(e.x, e.y, '#aaddff', 12, 120, 0.5, 4);
+}
+
+// 雷4件：击杀掉落电荷
+function onThunderChargeDrop(e) {
+  if (!player.synergyThunderCharge) return;
+  if (e.element !== 'lightning' && !e._lightningKill) return;
+  // 30% 概率掉落电荷
+  if (Math.random() > 0.3) return;
+  addToPool(gameRefs.xpGems, 300, {
+    x: e.x + rng(-10, 10), y: e.y + rng(-10, 10),
+    value: 0, life: 10, bobOff: Math.random() * Math.PI * 2,
+    _isThunderCharge: true
+  }, 'life');
+}
+
+// 水4件：潮湿敌人死亡时爆发水环 AOE
+function onWaterBurst(e) {
+  if (!player.synergyWaterBurst || e.status !== 'water') return;
+  const burstR = 70;
+  const near = enemyGrid.query(e.x, e.y, burstR + 40);
+  for (let e2 of near) {
+    if (e2._dead || e2 === e || !e2.active) continue;
+    if (dist(e, e2) < burstR + e2.size) {
+      dealDmg(e2, 15 * player.dmgMult, null, '#44aaff', 'water');
+      e2.slowAmount = Math.max(e2.slowAmount, 0.3);
+      e2.slowTimer = Math.max(e2.slowTimer, 1.5);
+      if (e2.hp <= 0) handleEnemyDeath(e2);
+    }
+  }
+  addParticle(e.x, e.y, '#44aaff', 10, 100, 0.4, 4);
+}
+
+// 奥术4件：技能命中时概率重置冷却
+function checkArcaneReset(weaponId) {
+  if (!player.synergyArcaneReset) return;
+  if (Math.random() > player.synergyArcaneReset) return;
+  const w = player.weapons.find(w => w.id === weaponId);
+  if (w) w._timer = 0;
+  addParticle(player.x, player.y, '#66ccff', 8, 60, 0.3, 3);
+}
+
 export function update(dt) {
   if (gameState.value === 'levelup' || gameState.value === 'gameover' || gameState.value === 'title') return;
   if (gameState.value === 'postupgrade') {
@@ -227,6 +445,12 @@ export function update(dt) {
   }
   dt = Math.min(dt, 0.1);
   gameTime.value += dt;
+
+  // 生命回复
+  if (player.regenRate > 0) {
+    player.hp = Math.min(player.maxHp, player.hp + player.regenRate * dt);
+  }
+
   let mx = 0, my = 0;
   if (keys['w'] || keys['arrowup']) my -= 1;
   if (keys['s'] || keys['arrowdown']) my += 1;
@@ -258,6 +482,19 @@ export function update(dt) {
   if (bossTimer.value >= bi) { bossTimer.value = 0; firstBossSpawned = true; spawnBoss(); }
   enemyGrid.clear();
   for (let e of enemies) { if (e._dead || !e.active) continue; enemyGrid.insert(e); }
+
+  // ===== 普攻 =====
+  player.attackTimer -= dt;
+  if (player.attackTimer <= 0) {
+    player.attackTimer = ATTACK.cd * player.attackCdMult;
+    // 只有有敌人在范围内才发射
+    const nearest = enemyGrid.queryNearest(player.x, player.y, ATTACK.range);
+    if (nearest) {
+      sfxShoot();
+      fireAttack();
+    }
+  }
+
   for (let e of enemies) {
     if (e._dead || !e.active) continue;
     let dx = player.x - e.x, dy = player.y - e.y, d = Math.hypot(dx, dy) || 0.001;
@@ -269,7 +506,7 @@ export function update(dt) {
     if (e.statusTimer > 0) { e.statusTimer -= dt; if (e.statusTimer <= 0) e.status = null; }
     if (e.defenseDown > 0) e.defenseDown -= dt;
     if (e.stun > 0) { e.stun -= dt; continue; }
-    if (e.burnTimer > 0) { e.hp -= e.burnDmg * dt; e.burnTimer -= dt; e.hitFlash = 0.04; if (e.hp <= 0) handleEnemyDeath(e); }
+    if (e.burnTimer > 0) { e.hp -= e.burnDmg * dt; e.burnTimer -= dt; e.hitFlash = 0.04; if (e.hp <= 0) { handleEnemyDeath(e); onFireExplode(e); } }
     e.x += (dx / d) * spd * dt + e.knockback.vx * dt;
     e.y += (dy / d) * spd * dt + e.knockback.vy * dt;
     e.knockback.vx *= Math.exp(-8 * dt);
@@ -277,21 +514,26 @@ export function update(dt) {
     if (e.hitFlash > 0) e.hitFlash -= dt;
     if (e.burnTimer > 0 && Math.random() < dt * 8) addParticle(e.x, e.y, '#ff6622', 1, 60, 0.4, 5);
     if (player.iframes <= 0 && dist(player, e) < 12 + e.size) {
-      player.hp -= e.dmg; player.iframes = 0.4; screenShake.value = Math.max(screenShake.value, 5);
+      const dmg = e.dmg * player.dmgTakenMult;
+      player.hp -= dmg; player.iframes = 0.4; screenShake.value = Math.max(screenShake.value, 5);
       sfxPlayerHit(); addParticle(player.x, player.y, '#ff4444', 6, 60, 0.3, 3);
       const pa = Math.atan2(player.y - e.y, player.x - e.x);
       player.x += Math.cos(pa) * 40; player.y += Math.sin(pa) * 40;
       if (player.hp <= 0) { player.alive = false; showGameOver(); return; }
     }
   }
+
   for (let p of projectiles) {
     if (!p.active) continue;
+    // 延迟发射（双重释放）
+    if (p._delay && p._delay > 0) { p._delay -= dt; continue; }
     p.life -= dt;
     if (p.life <= 0) { p._remove = true; continue; }
     if (p.type === 'missile') { seekTarget(p, dt); p.trail.push({ x: p.x, y: p.y, life: 0.2 }); }
     else if (p.type === 'knife') { seekTarget(p, dt); p.trail.push({ x: p.x, y: p.y, life: 0.12 }); }
     else if (p.type === 'fire') { seekTarget(p, dt); p.trail.push({ x: p.x, y: p.y, life: 0.3 }); }
     else if (p.type === 'ice') { seekTarget(p, dt); p.trail.push({ x: p.x, y: p.y, life: 0.2 }); }
+    else if (p.type === 'attack') { p.x += p.vx * dt; p.y += p.vy * dt; }
     else if (p.type === 'lspear') {
       p.target = enemyGrid.queryNearest(p.x, p.y, 800);
       if (p.target) {
@@ -305,6 +547,8 @@ export function update(dt) {
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.trail.push({ x: p.x, y: p.y, life: 0.12 });
       if (Math.random() < 0.5) addParticle(p.x, p.y, '#aaddff', 1, 40, 0.12, 2);
+    } else if (p.type === 'ice_shard_synergy') {
+      p.x += p.vx * dt; p.y += p.vy * dt;
     } else if (p.type === 'axe') {
       p.phase += p.orbitS * dt;
       p.x = player.x + Math.cos(p.phase) * p.orbitR;
@@ -312,8 +556,7 @@ export function update(dt) {
       p.angle += p.spinSpeed * dt;
       p.trail.push({ x: p.x, y: p.y, life: 0.2 });
     }
-    for (let t of p.trail) t.life -= dt;
-    compactTrail(p.trail);
+    if (p.trail) { for (let t of p.trail) t.life -= dt; compactTrail(p.trail); }
     const cr = Math.max(p.size || 5, p.aoe || 0, p.coneR || 0, 60) + 120;
     const near = enemyGrid.query(p.x, p.y, cr);
     for (let e of near) {
@@ -346,7 +589,16 @@ export function update(dt) {
           for (let e2 of near) {
             if (e2._dead || !e2.active) continue;
             const d2 = dist(p, e2);
-            if (d2 < p.aoe + e2.size) { dealDmg(e2, p.dmg, null, '#ff6622'); e2.burnDmg = Math.max(e2.burnDmg, p.burn); e2.burnTimer = Math.max(e2.burnTimer, p.burnT); }
+            if (d2 < p.aoe + e2.size) {
+              dealDmg(e2, p.dmg, null, '#ff6622');
+              // 火4件：点燃可叠加
+              if (player.synergyBurnStacks > 0) {
+                e2.burnDmg = Math.min(e2.burnDmg + p.burn, p.burn * player.synergyBurnStacks);
+              } else {
+                e2.burnDmg = Math.max(e2.burnDmg, p.burn);
+              }
+              e2.burnTimer = Math.max(e2.burnTimer, p.burnT);
+            }
           }
           addToPool(fireExplosions, 100, { x: p.x, y: p.y, life: 0.5, maxLife: 0.5, radius: p.aoe }, 'life');
           addParticle(p.x, p.y, '#ff6622', 15, 120, 0.5, 6); addParticle(p.x, p.y, '#ffaa00', 10, 80, 0.4, 4);
@@ -355,6 +607,27 @@ export function update(dt) {
       } else if (p.type === 'axe') {
         const d = dist(p, e);
         if (d < p.aoe + e.size) { dealDmg(e, p.dmg, p); addParticle(e.x, e.y, '#ff8844', 3, 40, 0.2, 2); }
+      } else if (p.type === 'attack') {
+        const d = dist(p, e);
+        if (d < p.size + e.size) {
+          dealDmg(e, p.dmg, p, '#ffffff');
+          // 物理4件：普攻弹射
+          if (p.bounces > 0 && (!p.bounceUsed || p.bounceUsed < p.bounces)) {
+            p.bounceUsed = (p.bounceUsed || 0) + 1;
+            p.target = null; p.hit = p.hit || [];
+            sfxBounce();
+            addParticle(p.x, p.y, '#ffffff', 5, 60, 0.3, 3);
+          } else {
+            p._remove = true;
+          }
+          break;
+        }
+      } else if (p.type === 'ice_shard_synergy') {
+        const d = dist(p, e);
+        if (d < p.size + e.size) {
+          dealDmg(e, p.dmg, p, '#aaddff', 'ice');
+          p._remove = true; break;
+        }
       } else {
         const d = dist(p, e);
         if (d < p.size + e.size) {
@@ -362,6 +635,8 @@ export function update(dt) {
             const hitBefore = p.hit.includes(e); dealDmg(e, p.dmg, p);
             if (!hitBefore) {
               p.hit.push(e);
+              // 奥术4件：命中概率重置冷却
+              checkArcaneReset('magic_missile');
               if (p.bounces > 0 && p.bounceUsed < p.bounces) {
                 p.bounceUsed++; p.target = null; p.hit.length = 0; sfxBounce();
                 addParticle(p.x, p.y, '#66ccff', 5, 60, 0.3, 3);
@@ -374,14 +649,30 @@ export function update(dt) {
                 addParticle(p.x, p.y, '#66ccff', 8, 80, 0.4, 4);
               } else { p._remove = true; }
             }
+          } else if (p.type === 'knife') {
+            const hitBefore = p.hit && p.hit.includes(e);
+            dealDmg(e, p.dmg, p);
+            if (!hitBefore) {
+              p.hit = p.hit || [];
+              p.hit.push(e);
+              // 物理2件：飞刀弹射
+              if (p.bounces > 0 && (!p.bounceUsed || p.bounceUsed < p.bounces)) {
+                p.bounceUsed = (p.bounceUsed || 0) + 1;
+                p.target = null; p.hit.length = 0; sfxBounce();
+                addParticle(p.x, p.y, '#cccccc', 5, 60, 0.3, 3);
+              } else { p._remove = true; }
+            }
           } else { dealDmg(e, p.dmg, p); if (p._remove) break; }
         }
       }
     }
   }
   compactPool(projectiles, p => p._remove || p.life <= 0);
+
   for (let l of lightningEffects) {
-    if (!l.active) continue; l.life -= dt;
+    if (!l.active) continue;
+    if (l._delay && l._delay > 0) { l._delay -= dt; continue; }
+    l.life -= dt;
     if (l.life < l.maxLife * 0.7 && !l._applied) {
       l._applied = true;
       const near = enemyGrid.query(l.x, l.y, l.aoe + 60);
@@ -389,6 +680,7 @@ export function update(dt) {
     }
   }
   compactPool(lightningEffects, l => l.life <= 0);
+
   for (let fe of fireExplosions) { if (fe.active) fe.life -= dt; } compactPool(fireExplosions, fe => fe.life <= 0);
   for (let ce of coneEffects) { if (ce.active) ce.life -= dt; } compactPool(coneEffects, ce => ce.life <= 0);
   for (let r of reactionEffects) { if (r.active) r.life -= dt; } compactPool(reactionEffects, r => r.life <= 0);
@@ -398,18 +690,46 @@ export function update(dt) {
   for (let f of frostNovaEffects) { if (!f.active) continue; f.life -= dt; f.radius = lerp(0, f.maxRadius, 1 - f.life / f.maxLife); } compactPool(frostNovaEffects, f => f.life <= 0);
   updateDisintegrateBeams(dt);
   updateTidalWaves(dt);
+  updateSynergyEffects(dt);
+
   for (let gem of xpGems) {
     if (!gem.active) continue; gem.life -= dt;
     const d = dist(player, gem);
     if (d < player.magnetRange) { const spd = 400 + (player.magnetRange - d) * 2, a = Math.atan2(player.y - gem.y, player.x - gem.x); gem.x += Math.cos(a) * spd * dt; gem.y += Math.sin(a) * spd * dt; }
-    if (d < 18) { gem._picked = true; player.xp += gem.value; sfxPickup(); addParticle(gem.x, gem.y, '#44ff88', 3, 40, 0.2, 2); }
+    if (d < 18) {
+      gem._picked = true;
+      if (gem._isThunderCharge) {
+        // 雷4件：拾取电荷，下次雷技能双重释放
+        player.thunderChargeReady = true;
+        sfxPickup();
+        addParticle(gem.x, gem.y, '#ffff44', 8, 60, 0.4, 4);
+      } else if (gem._isHealOrb) {
+        // 自然4件：拾取生命球回血
+        player.hp = Math.min(player.maxHp, player.hp + (gem.heal || 3));
+        sfxPickup();
+        addParticle(gem.x, gem.y, '#44ff88', 5, 50, 0.3, 3);
+      } else {
+        player.xp += gem.value; sfxPickup(); addParticle(gem.x, gem.y, '#44ff88', 3, 40, 0.2, 2);
+      }
+    }
   }
   compactPool(xpGems, g => g._picked || g.life <= 0);
   if (player.xp >= player.xpToNext) { player.xp -= player.xpToNext; player.level++; player.xpToNext = 5 + player.level * 3; player.hp = Math.min(player.maxHp, player.hp + 15); sfxLevelUp(); addParticle(player.x, player.y, '#ffcc44', 20, 120, 0.6, 5); showUpgradePanel(); }
   for (let i = 0; i < enemies.length; i++) { const e = enemies[i]; if (!e.active) continue; if (e._dead || !onScreen(e.x, e.y, 400)) { e.active = false; continue; } }
   for (let p of particles) { if (!p.active) continue; p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.95; p.vy *= 0.95; } compactPool(particles, p => p.life <= 0);
   for (let dn of dmgNumbers) { if (!dn.active) continue; dn.life -= dt; dn.y += dn.vy * dt; dn.vy *= 0.98; } compactPool(dmgNumbers, dn => dn.life <= 0);
-  for (let w of player.weapons) { if (w.id === 'garlic') continue; if (!w._timer) w._timer = 0; w._timer -= dt; if (w._timer <= 0) { const s2 = ws(w), d2 = WDEF[w.id]; w._timer = s2.cd * player.cdMult * getElementalCdMult(d2.element); fireWeapon(w); } }
+
+  // ===== 武器技能 =====
+  for (let w of player.weapons) {
+    if (w.id === 'garlic') continue;
+    if (!w._timer) w._timer = 0;
+    w._timer -= dt;
+    if (w._timer <= 0) {
+      const s2 = ws(w), d2 = WDEF[w.id];
+      w._timer = s2.cd * player.cdMult * getElementalCdMult(d2.element);
+      fireWeapon(w);
+    }
+  }
   updateHUD();
 }
 
@@ -487,13 +807,16 @@ export function drawEnemies() {
 export function drawProjectiles() {
   for (let p of projectiles) {
     if (!p.active || !onScreen(p.x, p.y, 30)) continue;
+    if (p._delay && p._delay > 0) continue; // 延迟中的不渲染
     const ppx = sx(p.x) + shakeX, ppy = sy(p.y) + shakeY;
     if (p.trail && p.trail.length > 1) { ctx.save(); ctx.strokeStyle = p.color; ctx.lineWidth = p.size * 0.6; ctx.globalAlpha = 0.4; ctx.beginPath(); ctx.moveTo(ppx, ppy); for (let i = p.trail.length - 1; i >= 0; i--) { const t = p.trail[i]; ctx.lineTo(sx(t.x) + shakeX, sy(t.y) + shakeY); } ctx.stroke(); ctx.restore(); }
     ctx.save(); ctx.fillStyle = p.color; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.translate(ppx, ppy);
     if (p.type === 'axe') {
       ctx.rotate(p.angle || 0); ctx.beginPath(); ctx.moveTo(0, -p.size); ctx.lineTo(p.size * 0.7, -p.size * 0.5); ctx.lineTo(p.size * 0.5, p.size * 0.8); ctx.lineTo(-p.size * 0.5, p.size * 0.8); ctx.lineTo(-p.size * 0.7, -p.size * 0.5); ctx.closePath(); ctx.fill();
-    } else if (p.type === 'missile' || p.type === 'ice') {
+    } else if (p.type === 'missile' || p.type === 'ice' || p.type === 'ice_shard_synergy') {
       ctx.beginPath(); ctx.arc(0, 0, p.size, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(0, 0, p.size * 0.5, 0, Math.PI * 2); ctx.fill();
+    } else if (p.type === 'attack') {
+      ctx.beginPath(); ctx.arc(0, 0, p.size, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, p.size * 0.6, 0, Math.PI * 2); ctx.fill();
     } else if (p.type === 'fire') {
       ctx.beginPath(); ctx.arc(0, 0, p.size, 0, Math.PI * 2); ctx.fill();
       const fg = ctx.createRadialGradient(0, 0, p.size * 0.3, 0, 0, p.size); fg.addColorStop(0, '#ffff88'); fg.addColorStop(0.5, '#ff6622'); fg.addColorStop(1, 'rgba(255,50,0,0)'); ctx.fillStyle = fg; ctx.fill();
@@ -533,6 +856,7 @@ export function drawTidalWaves() {
 export function drawLightningEffects() {
   for (let l of lightningEffects) {
     if (!l.active) continue;
+    if (l._delay && l._delay > 0) continue;
     const alpha = l.life / l.maxLife, lx = sx(l.x) + shakeX, ly = sy(l.y) + shakeY;
     ctx.save(); ctx.globalAlpha = alpha * 0.4; ctx.fillStyle = '#ffff88'; ctx.beginPath(); ctx.arc(lx, ly, l.aoe, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = alpha * 0.6; ctx.strokeStyle = '#ffff44'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
@@ -571,7 +895,7 @@ export function drawBlizzardZones() {
     if (!b.active) continue; const alpha = b.life / b.duration, bx = sx(b.x) + shakeX, by = sy(b.y) + shakeY;
     ctx.save(); ctx.globalAlpha = alpha * 0.35;
     const g = ctx.createRadialGradient(bx, by, 0, bx, by, b.radius); g.addColorStop(0, 'rgba(200,240,255,0.6)'); g.addColorStop(0.7, 'rgba(120,200,255,0.2)'); g.addColorStop(1, 'transparent');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, b.radius, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, b.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     ctx.globalAlpha = alpha * 0.5; ctx.strokeStyle = '#aaddff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, by, b.radius * (0.9 + Math.sin(gameTime.value * 6) * 0.05), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     ctx.save();
     for (let f of b.flakes) {
@@ -619,9 +943,24 @@ export function drawXPGems() {
     if (!gem.active || !onScreen(gem.x, gem.y, 20)) continue;
     const gx = sx(gem.x) + shakeX, gy = sy(gem.y) + shakeY + Math.sin(gameTime.value * 3 + gem.bobOff) * 3, pulse = 1 + Math.sin(gameTime.value * 5 + gem.bobOff) * 0.2;
     ctx.save();
-    const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 8 * pulse); glow.addColorStop(0, 'rgba(100,255,140,0.7)'); glow.addColorStop(1, 'transparent');
-    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(gx, gy, 8 * pulse, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#44ff88'; ctx.strokeStyle = '#aaffcc'; ctx.lineWidth = 1; ctx.beginPath(); const s2 = 4 * pulse; ctx.moveTo(gx, gy - s2); ctx.lineTo(gx + s2, gy); ctx.lineTo(gx, gy + s2); ctx.lineTo(gx - s2, gy); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    if (gem._isThunderCharge) {
+      // 电荷：黄色闪电状
+      const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 10 * pulse); glow.addColorStop(0, 'rgba(255,255,80,0.8)'); glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(gx, gy, 10 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffff44'; ctx.strokeStyle = '#ffffaa'; ctx.lineWidth = 1; ctx.beginPath();
+      const s2 = 5 * pulse; ctx.moveTo(gx, gy - s2); ctx.lineTo(gx + s2 * 0.6, gy - s2 * 0.2); ctx.lineTo(gx + s2 * 0.2, gy + s2 * 0.2); ctx.lineTo(gx + s2 * 0.6, gy + s2); ctx.lineTo(gx - s2 * 0.2, gy); ctx.lineTo(gx - s2 * 0.6, gy - s2 * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+    } else if (gem._isHealOrb) {
+      // 生命球：粉红心形
+      const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 8 * pulse); glow.addColorStop(0, 'rgba(255,100,150,0.7)'); glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(gx, gy, 8 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff6699'; ctx.strokeStyle = '#ff99bb'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(gx, gy, 4 * pulse, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    } else {
+      // 普通 XP 宝石：绿色
+      const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 8 * pulse); glow.addColorStop(0, 'rgba(100,255,140,0.7)'); glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(gx, gy, 8 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#44ff88'; ctx.strokeStyle = '#aaffcc'; ctx.lineWidth = 1; ctx.beginPath(); const s2 = 4 * pulse; ctx.moveTo(gx, gy - s2); ctx.lineTo(gx + s2, gy); ctx.lineTo(gx, gy + s2); ctx.lineTo(gx - s2, gy); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
   }
 }
 

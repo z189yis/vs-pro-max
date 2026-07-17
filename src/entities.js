@@ -96,6 +96,8 @@ export function handleEnemyDeath(e) {
     const gv = e.type === 'boss' ? 3 : 1;
     addToPool(gameRefs.xpGems, 300, { x: e.x + rng(-15, 15), y: e.y + rng(-15, 15), value: gv, life: 30, bobOff: Math.random() * Math.PI * 2 }, 'life');
   }
+  // 羁绊钩子：通过 gameRefs 回调避免循环依赖
+  if (gameRefs.onEnemyDeath) gameRefs.onEnemyDeath(e);
 }
 
 export function dealDmg(e, dmg, proj, color, element) {
