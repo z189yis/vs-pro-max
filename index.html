@@ -46,10 +46,43 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 #title-screen { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 200; }
 #title-screen h1 { font-size: 52px; color: #ffcc44; text-shadow: 0 0 40px rgba(255,200,50,0.5), 0 4px 8px rgba(0,0,0,0.8); margin-bottom: 8px; letter-spacing: 4px; }
 #title-screen .subtitle { color: #aaa; font-size: 16px; margin-bottom: 32px; letter-spacing: 2px; }
-#title-screen .start-btn { padding: 14px 48px; font-size: 20px; background: linear-gradient(135deg, #cc3333, #882222); color: #fff; border: 2px solid #ff6666; border-radius: 10px; cursor: pointer; letter-spacing: 2px; transition: all 0.2s; }
+#title-screen .start-btn { padding: 14px 48px; font-size: 20px; background: linear-gradient(135deg, #cc3333, #882222); color: #fff; border: 2px solid #ff6666; border-radius: 10px; cursor: pointer; letter-spacing: 2px; transition: all 0.2s; margin: 8px 0; }
 #title-screen .start-btn:hover { background: linear-gradient(135deg, #dd4444, #993333); transform: scale(1.05); box-shadow: 0 0 30px rgba(255,50,50,0.4); }
+#title-screen .mode-btn { padding: 14px 48px; font-size: 20px; background: linear-gradient(135deg, #2a4a8a, #1a2a5a); color: #fff; border: 2px solid #5588cc; border-radius: 10px; cursor: pointer; letter-spacing: 2px; transition: all 0.2s; margin: 8px 0; }
+#title-screen .mode-btn:hover { background: linear-gradient(135deg, #3a5a9a, #2a3a6a); transform: scale(1.05); box-shadow: 0 0 30px rgba(80,120,255,0.4); }
 #title-screen .controls { color: #888; font-size: 13px; margin-top: 24px; text-align: center; line-height: 1.8; }
-@media (max-width: 768px) { .hud-item { font-size: 12px; padding: 4px 10px; } #xp-bar-wrap { width: 200px; bottom: 30px; } #weapons-bar { bottom: 44px; gap: 4px; } .weapon-icon { width: 30px; height: 30px; font-size: 15px; } .weapon-icon .lv { width: 12px; height: 12px; font-size: 8px; } #upgrade-title { font-size: 22px; margin-bottom: 16px; } #upgrade-cards { gap: 10px; } .upgrade-card { width: 140px; padding: 14px 10px; } .upgrade-card .card-icon { font-size: 30px; } .upgrade-card .card-name { font-size: 14px; } .upgrade-card .card-desc { font-size: 10px; } #title-screen h1 { font-size: 32px; letter-spacing: 2px; } #title-screen .start-btn { padding: 12px 36px; font-size: 18px; } #game-over h1 { font-size: 32px; } #game-over .stats { font-size: 15px; } }
+
+/* 英雄选择 */
+#hero-select { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 300; }
+#hero-select.active { display: flex; }
+#hero-select h2 { color: #ffcc44; font-size: 28px; margin-bottom: 24px; text-shadow: 0 0 20px rgba(255,200,50,0.5); }
+#hero-cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; padding: 0 20px; }
+.hero-card { width: 190px; padding: 20px 16px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid rgba(255,255,255,0.2); border-radius: 14px; cursor: pointer; text-align: center; color: #e0d8c0; transition: all 0.2s; }
+.hero-card:hover { border-color: #ffcc44; transform: translateY(-4px); box-shadow: 0 8px 30px rgba(255,200,50,0.25); }
+.hero-card .hero-icon { font-size: 44px; margin-bottom: 10px; }
+.hero-card .hero-name { font-size: 17px; font-weight: bold; color: #ffcc44; margin-bottom: 8px; }
+.hero-card .hero-desc { font-size: 12px; color: #aab; line-height: 1.4; margin-bottom: 8px; }
+.hero-card .hero-passive { font-size: 11px; color: #88ccff; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; }
+
+/* 防御 HUD */
+#defense-hud { position: absolute; top: 0; left: 0; right: 0; padding: 8px 16px; display: none; flex-direction: column; gap: 6px; pointer-events: none; z-index: 10; }
+#defense-hud.active { display: flex; }
+#crystal-bar-wrap { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 320px; height: 18px; background: rgba(0,0,0,0.6); border-radius: 9px; border: 1px solid rgba(120,200,255,0.3); overflow: hidden; z-index: 11; pointer-events: none; }
+#crystal-bar-fill { height: 100%; background: linear-gradient(90deg, #3388dd, #66ccff); border-radius: 9px; transition: width 0.2s; }
+#crystal-bar-label { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 11px; font-weight: bold; text-shadow: 0 0 4px rgba(0,0,0,0.9); z-index: 12; pointer-events: none; white-space: nowrap; }
+#def-stats { position: absolute; top: 34px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; z-index: 10; pointer-events: none; }
+.def-item { color: #e0d8c0; font-size: 13px; text-shadow: 0 0 8px rgba(0,0,0,0.8); background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
+.def-item span { color: #ffcc44; font-weight: bold; }
+#def-weapons-bar { position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 10; pointer-events: none; }
+#defense-banner { position: absolute; top: 64px; left: 50%; transform: translateX(-50%) translateY(-80px); padding: 10px 28px; background: rgba(20,20,40,0.85); border: 1px solid rgba(255,255,255,0.2); border-radius: 30px; color: #ffcc44; font-size: 18px; font-weight: bold; text-shadow: 0 0 12px rgba(255,200,50,0.6); pointer-events: none; z-index: 15; opacity: 0; transition: transform 0.5s ease, opacity 0.5s ease; }
+#defense-banner.active { transform: translateX(-50%) translateY(0); opacity: 1; }
+#defense-end { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 200; cursor: pointer; }
+#defense-end.active { display: flex; }
+#defense-end h1 { color: #ffcc44; font-size: 40px; margin-bottom: 16px; text-shadow: 0 0 30px rgba(255,200,50,0.6); }
+#defense-end .stats { color: #e0d8c0; font-size: 16px; margin: 5px 0; }
+#defense-end .stats span { color: #ffcc44; }
+#defense-end .hint { color: #888; font-size: 14px; margin-top: 24px; }
+@media (max-width: 768px) { .hud-item { font-size: 12px; padding: 4px 10px; } #xp-bar-wrap { width: 200px; bottom: 30px; } #weapons-bar { bottom: 44px; gap: 4px; } .weapon-icon { width: 30px; height: 30px; font-size: 15px; } .weapon-icon .lv { width: 12px; height: 12px; font-size: 8px; } #upgrade-title { font-size: 22px; margin-bottom: 16px; } #upgrade-cards { gap: 10px; } .upgrade-card { width: 140px; padding: 14px 10px; } .upgrade-card .card-icon { font-size: 30px; } .upgrade-card .card-name { font-size: 14px; } .upgrade-card .card-desc { font-size: 10px; } #title-screen h1 { font-size: 32px; letter-spacing: 2px; } #title-screen .start-btn { padding: 12px 36px; font-size: 18px; } #title-screen .mode-btn { padding: 12px 36px; font-size: 18px; } #game-over h1 { font-size: 32px; } #game-over .stats { font-size: 15px; } #hero-select h2 { font-size: 22px; } .hero-card { width: 150px; padding: 14px 10px; } .hero-card .hero-icon { font-size: 34px; } .hero-card .hero-name { font-size: 15px; } #crystal-bar-wrap { width: 220px; } }
 @media (max-width: 400px) { .upgrade-card { width: 110px; padding: 10px 8px; } .upgrade-card .card-icon { font-size: 24px; } .upgrade-card .card-name { font-size: 12px; } .upgrade-card .card-desc { font-size: 9px; } #upgrade-cards { gap: 6px; } #title-screen h1 { font-size: 26px; } }
 </style>
 </head>
@@ -62,7 +95,24 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 <div id="weather-banner"></div>
 <div id="upgrade-overlay"><div id="upgrade-title">⬆ 选择升级</div><div id="upgrade-cards"></div></div>
 <div id="game-over" onclick="if(window.__restartGame)window.__restartGame()"><h1>游戏结束</h1><div class="stats">🕐 生存时间: <span id="go-time">00:00</span></div><div class="stats">💀 击杀数: <span id="go-kills">0</span></div><div class="stats">⭐ 等级: <span id="go-level">1</span></div><div class="hint"><span class="ctrl-desk">按 Enter 重新开始</span><span class="ctrl-mobile">点击屏幕重新开始</span></div></div>
-<div id="title-screen"><h1>🧛 吸血鬼幸存者</h1><div class="subtitle">— Pro Max —</div><button class="start-btn" id="btn-start">开始游戏</button><div class="controls"><span class="ctrl-desk">WASD / 方向键 — 移动</span><span class="ctrl-mobile">左侧滑动摇杆 — 移动</span><br>武器自动攻击 · 升级时选择卡片<br>尽可能长时间生存！</div></div>
+<div id="title-screen"><h1>🧛 吸血鬼幸存者</h1><div class="subtitle">— Pro Max —</div><button class="start-btn" id="btn-start">生存模式</button><button class="mode-btn" id="btn-start-defense">水晶防守</button><div class="controls"><span class="ctrl-desk">WASD / 方向键 — 移动</span><span class="ctrl-mobile">左侧滑动摇杆 — 移动</span><br>武器自动攻击 · 升级时选择卡片<br>尽可能长时间生存！</div></div>
+<div id="hero-select"><h2>选择你的英雄</h2><div id="hero-cards"></div></div>
+<div id="defense-hud">
+  <div id="crystal-bar-wrap"><div id="crystal-bar-fill" style="width:100%"></div></div>
+  <div id="crystal-bar-label">💎 <span id="crystal-hp">500</span> / <span id="crystal-max">500</span></div>
+  <div id="def-stats">
+    <div class="def-item">🕐 <span id="def-time">00:00</span></div>
+    <div class="def-item">🌊 <span id="def-wave">0/20</span></div>
+    <div class="def-item">💀 <span id="def-kills">0</span></div>
+    <div class="def-item">⭐ Lv.<span id="def-level">1</span></div>
+    <div class="def-item">❤️ <span id="def-hp">100</span></div>
+    <div class="def-item">🪙 <span id="def-gold">0</span></div>
+    <div class="def-item">🪵 <span id="def-wood">0</span></div>
+  </div>
+</div>
+<div id="def-weapons-bar"></div>
+<div id="defense-banner"></div>
+<div id="defense-end" onclick="if(window.__restartDefense)window.__restartDefense()"><h1 id="defense-end-title">💀 水晶被摧毁！</h1><div class="stats">🌊 波次: <span id="defense-end-wave">0/20</span></div><div class="stats">🕐 时间: <span id="defense-end-time">00:00</span></div><div class="stats">💀 击杀: <span id="defense-end-kills">0</span></div><div class="stats">🪙 金币: <span id="defense-end-gold">0</span></div><div class="stats">🪵 木材: <span id="defense-end-wood">0</span></div><div class="hint">点击重新开始</div></div>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

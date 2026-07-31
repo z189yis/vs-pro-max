@@ -16,21 +16,25 @@ export const ET = {
   boss: { name: 'BOSS', hp: 300, spd: 40, dmg: 25, size: 38, color: '#aa44ff', xp: 8 }
 };
 
-export function spawnEnemy(type = 'bat', ad = null) {
+export function spawnEnemy(type = 'bat', ad = null, extra = {}) {
   const player = playerRef.value;
   const gameState = gameRefs.gameState;
   const currentWeather = gameRefs.currentWeather;
   const enemies = gameRefs.enemies;
   const gameTime = gameRefs.gameTime;
+  // 生成中心：防守模式由模式层覆盖（水晶），默认玩家
+  const center = (gameRefs.spawnCenter && gameRefs.spawnCenter()) || player;
   const dr = ad || rng(600, 850);
   const a = randAngle();
-  const x = player.x + Math.cos(a) * dr;
-  const y = player.y + Math.sin(a) * dr;
+  const x = center.x + Math.cos(a) * dr;
+  const y = center.y + Math.sin(a) * dr;
   const td = ET[type];
   const t = gameTime.value;
   let hs = 1 + t / 200;
   if (t > 180) hs += Math.pow((t - 180) / 80, 1.8);
   if (t > 300) hs += Math.pow((t - 300) / 100, 2);
+  // 模式自定义强度倍率（防守模式按波次缩放）
+  if (extra.hpMult) hs *= extra.hpMult;
   let roll = Math.random();
   let ele = 'physical';
   if (currentWeather.value.id === 'rain') {
@@ -58,7 +62,7 @@ export function spawnEnemy(type = 'bat', ad = null) {
   if (Math.random() < 0.25) { const elems = ['fire', 'ice', 'lightning', 'water']; weak = elems[Math.floor(Math.random() * elems.length)]; }
   addToPool(enemies, 250, {
     x, y, type, hp: td.hp * hs, maxHp: td.hp * hs,
-    spd: td.spd * (1 + t / 600), dmg: td.dmg, size: td.size, color: td.color, xpVal: td.xp,
+    spd: td.spd * (1 + t / 600) * (extra.spdMult || 1), dmg: td.dmg, size: td.size, color: td.color, xpVal: td.xp,
     hitFlash: 0, knockback: { vx: 0, vy: 0 }, slowAmount: 0, slowTimer: 0, burnDmg: 0, burnTimer: 0, freezeTimer: 0,
     element: ele, resist, weakness: weak, status: null, statusTimer: 0, defenseDown: 0, stun: 0, _spawnTime: t
   }, '_spawnTime');
@@ -77,9 +81,9 @@ export function spawnWave() {
   }
 }
 
-export function spawnBoss() {
+export function spawnBoss(ad = null, hpMult = 1) {
   const player = playerRef.value;
-  spawnEnemy('boss', rng(700, 900));
+  spawnEnemy('boss', ad, { hpMult });
   if (gameRefs.screenShake) gameRefs.screenShake.value = 12;
   sfxBossSpawn();
   addParticle(player.x, player.y, '#aa44ff', 30, 200, 0.8, 6);

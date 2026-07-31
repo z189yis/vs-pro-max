@@ -56,7 +56,7 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
       }
       return;
     }
-    if (gs !== 'playing') return;
+    if (gs !== 'playing' && gs !== 'defense') return;
     e.preventDefault();
     for (let tch of e.changedTouches) {
       if (touchId !== null) break;
@@ -73,7 +73,7 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
   }, { passive: false });
 
   window.addEventListener('touchmove', e => {
-    if (getGameState() !== 'playing') return;
+    if (getGameState() !== 'playing' && getGameState() !== 'defense') return;
     if (touchId === null) return;
     e.preventDefault();
     for (let tch of e.changedTouches) {
@@ -107,6 +107,7 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
     if (gs === 'gameover') { window.__restartGame?.(); return; }
     if (gs === 'title') { window.__startGame?.(); return; }
     if (gs === 'postupgrade') { setPostUpgrade(); return; }
+    if (gs !== 'playing' && gs !== 'defense') return;
     if (e.button === 0 && e.clientX < window.innerWidth / 2) {
       mouseDown = true;
       joystick.active = true;

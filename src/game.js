@@ -5,8 +5,9 @@ import { W, H, camera, dist, rng, irng, clamp, lerp, randAngle, sx, sy, onScreen
 } from './utils.js';
 import { keys, joystick, resetInput } from './input.js';
 import { playerRef, gameRefs, enemyGrid, setPlayer, setGameRefs, spawnEnemy, spawnWave, spawnBoss, handleEnemyDeath, dealDmg, applyElement, calcDamage, getElementalDamageMult, getElementalCdMult } from './entities.js';
-import { ws, fireWeapon, fireAttack, updateGarlicAura, updateBlizzardZones, updateDisintegrateBeams, updateTidalWaves, updateSynergyEffects } from './weapons.js';
-import { sfxReaction, sfxPickup, sfxLevelUp, sfxPlayerHit, sfxGameOver, sfxBounce, sfxShoot } from './audio.js';
+import { ws, fireWeapon, updateGarlicAura, updateBlizzardZones, updateDisintegrateBeams, updateTidalWaves, updateSynergyEffects } from './weapons.js';
+import { systemEnemies, systemProjectiles, systemWeapons, fireAttackSys, setSystemsCfg, setSystemsRefs } from './systems.js';
+import { sfxReaction, sfxPickup, sfxLevelUp, sfxGameOver, sfxBounce, sfxShoot } from './audio.js';
 
 export const player = {
   x: 0, y: 0, hp: 100, maxHp: 100, speed: 220, level: 1, xp: 0, xpToNext: 8,
@@ -53,6 +54,8 @@ export let ctx = null;
 
 export function setCanvas(c, x) { canvas = c; ctx = x; }
 
+export function getCtx() { return ctx; }
+
 export function getGameState() { return gameState.value; }
 
 export function setPostUpgrade() { gameState.value = 'playing'; lastTime = 0; }
@@ -63,7 +66,15 @@ export function initGameRefs() {
     gameState, gameTime, kills, screenShake, enemies, projectiles, xpGems, particles, dmgNumbers,
     lightningEffects, garlicAuraAlpha, fireExplosions, coneEffects, reactionEffects, blizzardZones,
     frostNovaEffects, disintegrateBeams, tidalWaves, currentWeather, player,
-    onEnemyDeath: (e) => { onEnemyDeathSynergy(e); }
+    spawnCenter: () => player,
+    onEnemyDeath: (e) => {
+      // 防守模式：击杀统计/金币/木材/Boss 判定
+      if (gameState.value === 'defense' && window.__onDefenseKill) {
+        window.__onDefenseKill(e);
+        return;
+      }
+      onEnemyDeathSynergy(e);
+    }
   });
 }
 
@@ -347,6 +358,15 @@ export function seekTarget(p, dt) {
   p.y += Math.sin(p.angle) * p.spd * dt;
 }
 
+// ===== 生存模式系统注入（在全部声明之后执行） =====
+setSystemsCfg({
+  getTargetPoint: () => ({ x: player.x, y: player.y }),
+  onKill: null,
+  preFire: (wid) => { checkArcaneReset(wid); },
+  crit: () => 1
+});
+setSystemsRefs({ gameTime, weather: currentWeather, screenShake });
+
 // ===== 羁绊击杀钩子 =====
 
 function onEnemyDeathSynergy(e) {
@@ -476,6 +496,9 @@ export function update(dt) {
   enemyGrid.clear();
   for (let e of enemies) { if (e._dead || !e.active) continue; enemyGrid.insert(e); }
 
+  // ===== 共享战斗系统（敌人 AI + 玩家受击） =====
+  systemEnemies(dt);
+
   // ===== 普攻 =====
   player.attackTimer -= dt;
   if (player.attackTimer <= 0) {
@@ -484,194 +507,12 @@ export function update(dt) {
     const nearest = enemyGrid.queryNearest(player.x, player.y, ATTACK.range);
     if (nearest) {
       sfxShoot();
-      fireAttack();
+      fireAttackSys();
     }
   }
 
-  for (let e of enemies) {
-    if (e._dead || !e.active) continue;
-    let dx = player.x - e.x, dy = player.y - e.y, d = Math.hypot(dx, dy) || 0.001;
-    let bs = d < 180 ? 100 : e.spd;
-    let spd = bs * (1 + gameTime.value / 400);
-    if (e.freezeTimer > 0) { spd = 0; e.freezeTimer -= dt; }
-    else if (e.slowTimer > 0) { spd *= (1 - e.slowAmount); e.slowTimer -= dt; if (e.slowTimer <= 0) e.slowAmount = 0; }
-    if (currentWeather.value.id === 'snowstorm') spd *= 0.9;
-    if (e.statusTimer > 0) { e.statusTimer -= dt; if (e.statusTimer <= 0) e.status = null; }
-    if (e.defenseDown > 0) e.defenseDown -= dt;
-    if (e.stun > 0) { e.stun -= dt; continue; }
-    if (e.burnTimer > 0) { e.hp -= e.burnDmg * dt; e.burnTimer -= dt; e.hitFlash = 0.04; if (e.hp <= 0) { handleEnemyDeath(e); onFireExplode(e); } }
-    e.x += (dx / d) * spd * dt + e.knockback.vx * dt;
-    e.y += (dy / d) * spd * dt + e.knockback.vy * dt;
-    e.knockback.vx *= Math.exp(-8 * dt);
-    e.knockback.vy *= Math.exp(-8 * dt);
-    if (e.hitFlash > 0) e.hitFlash -= dt;
-    if (e.burnTimer > 0 && Math.random() < dt * 8) addParticle(e.x, e.y, '#ff6622', 1, 60, 0.4, 5);
-    if (player.iframes <= 0 && dist(player, e) < 12 + e.size) {
-      const dmg = e.dmg * player.dmgTakenMult;
-      player.hp -= dmg; player.iframes = 0.4; screenShake.value = Math.max(screenShake.value, 5);
-      sfxPlayerHit(); addParticle(player.x, player.y, '#ff4444', 6, 60, 0.3, 3);
-      const pa = Math.atan2(player.y - e.y, player.x - e.x);
-      player.x += Math.cos(pa) * 40; player.y += Math.sin(pa) * 40;
-      if (player.hp <= 0) { player.alive = false; showGameOver(); return; }
-    }
-  }
-
-  for (let p of projectiles) {
-    if (!p.active) continue;
-    // 延迟发射（双重释放）
-    if (p._delay && p._delay > 0) { p._delay -= dt; continue; }
-    p.life -= dt;
-    if (p.life <= 0) { p._remove = true; continue; }
-    if (p.type === 'missile') { seekTarget(p, dt); p.trail.push({ x: p.x, y: p.y, life: 0.2 }); }
-    else if (p.type === 'knife') { seekTarget(p, dt); p.trail.push({ x: p.x, y: p.y, life: 0.12 }); }
-    else if (p.type === 'fire') { seekTarget(p, dt); p.trail.push({ x: p.x, y: p.y, life: 0.3 }); }
-    else if (p.type === 'ice') { seekTarget(p, dt); p.trail.push({ x: p.x, y: p.y, life: 0.2 }); }
-    else if (p.type === 'attack') { p.x += p.vx * dt; p.y += p.vy * dt; }
-    else if (p.type === 'lspear') {
-      p.target = enemyGrid.queryNearest(p.x, p.y, 800);
-      if (p.target) {
-        const dx = p.target.x - p.x, dy = p.target.y - p.y, ta = Math.atan2(dy, dx);
-        let diff = ta - p.angle;
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        p.angle += Math.sign(diff) * Math.min(Math.abs(diff), p.turnRate * dt);
-      }
-      p.vx = Math.cos(p.angle) * p.spd; p.vy = Math.sin(p.angle) * p.spd;
-      p.x += p.vx * dt; p.y += p.vy * dt;
-      p.trail.push({ x: p.x, y: p.y, life: 0.12 });
-      if (Math.random() < 0.5) addParticle(p.x, p.y, '#aaddff', 1, 40, 0.12, 2);
-    } else if (p.type === 'ice_shard_synergy') {
-      p.x += p.vx * dt; p.y += p.vy * dt;
-    } else if (p.type === 'axe') {
-      p.phase += p.orbitS * dt;
-      p.x = player.x + Math.cos(p.phase) * p.orbitR;
-      p.y = player.y + Math.sin(p.phase) * p.orbitR;
-      p.angle += p.spinSpeed * dt;
-      p.trail.push({ x: p.x, y: p.y, life: 0.2 });
-    }
-    if (p.trail) { for (let t of p.trail) t.life -= dt; compactTrail(p.trail); }
-    const cr = Math.max(p.size || 5, p.aoe || 0, p.coneR || 0, 60) + 120;
-    const near = enemyGrid.query(p.x, p.y, cr);
-    for (let e of near) {
-      if (e._dead || !e.active) continue;
-      if (p.type === 'ice') {
-        const d = dist(p, e);
-        if (d < p.size + e.size && !p.hit.includes(e)) {
-          p.hit.push(e); dealDmg(e, p.dmg, p, '#88ccff'); e.slowAmount = Math.max(e.slowAmount, p.slow); e.slowTimer = Math.max(e.slowTimer, p.slowT);
-          addParticle(e.x, e.y, '#aaddff', 4, 30, 0.25, 2);
-          const ang = Math.atan2(e.y - p.y, e.x - p.x);
-          addToPool(coneEffects, 100, { x: e.x, y: e.y, angle: ang, coneA: p.coneA, coneR: p.coneR, life: 0.4, maxLife: 0.4 }, 'life');
-          for (let e2 of near) {
-            if (e2._dead || e2 === e || !e2.active) continue;
-            const d2 = dist(e, e2);
-            if (d2 < p.coneR) {
-              const ea = Math.atan2(e2.y - e.y, e2.x - e.x), adiff = ea - ang;
-              let aa = adiff; while (aa > Math.PI) aa -= Math.PI * 2; while (aa < -Math.PI) aa += Math.PI * 2;
-              if (Math.abs(aa) < p.coneA * Math.PI / 360) {
-                const cdmg = p.dmg * p.aoeDmg; dealDmg(e2, cdmg, null, '#88ccff'); e2.slowAmount = Math.max(e2.slowAmount, p.slow); e2.slowTimer = Math.max(e2.slowTimer, p.slowT);
-                addParticle(e2.x, e2.y, '#aaddff', 2, 20, 0.2, 2);
-              }
-            }
-          }
-          p._remove = true; break;
-        }
-      } else if (p.type === 'fire') {
-        const d = dist(p, e);
-        if (d < p.size + e.size && !p._exploded) {
-          p._exploded = true;
-          for (let e2 of near) {
-            if (e2._dead || !e2.active) continue;
-            const d2 = dist(p, e2);
-            if (d2 < p.aoe + e2.size) {
-              dealDmg(e2, p.dmg, null, '#ff6622');
-              // 火4件：点燃可叠加
-              if (player.synergyBurnStacks > 0) {
-                e2.burnDmg = Math.min(e2.burnDmg + p.burn, p.burn * player.synergyBurnStacks);
-              } else {
-                e2.burnDmg = Math.max(e2.burnDmg, p.burn);
-              }
-              e2.burnTimer = Math.max(e2.burnTimer, p.burnT);
-            }
-          }
-          addToPool(fireExplosions, 100, { x: p.x, y: p.y, life: 0.5, maxLife: 0.5, radius: p.aoe }, 'life');
-          addParticle(p.x, p.y, '#ff6622', 15, 120, 0.5, 6); addParticle(p.x, p.y, '#ffaa00', 10, 80, 0.4, 4);
-          screenShake.value = Math.max(screenShake.value, 3); p._remove = true; break;
-        }
-      } else if (p.type === 'axe') {
-        const d = dist(p, e);
-        if (d < p.aoe + e.size) { dealDmg(e, p.dmg, p); addParticle(e.x, e.y, '#ff8844', 3, 40, 0.2, 2); }
-      } else if (p.type === 'attack') {
-        const d = dist(p, e);
-        if (d < p.size + e.size) {
-          p.hit = p.hit || [];
-          if (p.hit.includes(e)) continue;
-          p.hit.push(e);
-          dealDmg(e, p.dmg, p, '#ffffff');
-          // 物理4件：普攻弹射
-          if (p.bounces > 0 && (!p.bounceUsed || p.bounceUsed < p.bounces)) {
-            p.bounceUsed = (p.bounceUsed || 0) + 1;
-            p.target = null; p.hit.length = 0;
-            sfxBounce();
-            addParticle(p.x, p.y, '#ffffff', 5, 60, 0.3, 3);
-          } else {
-            p._remove = true;
-          }
-          break;
-        }
-      } else if (p.type === 'ice_shard_synergy') {
-        const d = dist(p, e);
-        if (d < p.size + e.size) {
-          p.hit = p.hit || [];
-          if (p.hit.includes(e)) continue;
-          p.hit.push(e);
-          dealDmg(e, p.dmg, p, '#aaddff', 'ice');
-          p._remove = true; break;
-        }
-      } else {
-        const d = dist(p, e);
-        if (d < p.size + e.size) {
-          if (p.type === 'missile') {
-            p.hit = p.hit || [];
-            if (p.hit.includes(e)) continue;
-            p.hit.push(e);
-            dealDmg(e, p.dmg, p);
-            // 奥术4件：命中概率重置冷却
-            checkArcaneReset('magic_missile');
-            if (p.bounces > 0 && p.bounceUsed < p.bounces) {
-              p.bounceUsed++; p.target = null; p.hit.length = 0; sfxBounce();
-              addParticle(p.x, p.y, '#66ccff', 5, 60, 0.3, 3);
-            } else if (p.splits > 0 && !p._split) {
-              p._split = true;
-              for (let si = 0; si < p.splits; si++) {
-                const sa = randAngle();
-                addToPool(projectiles, 400, { x: p.x, y: p.y, vx: 0, vy: 0, spd: p.spd * 0.7, angle: sa, turnRate: p.turnRate + 2, dmg: p.dmg * 0.6, bounces: 0, splits: 0, pierce: 0, life: p.life * 0.6, type: 'missile', color: '#88ddff', size: 3, target: null, trail: [], hit: [], bounceUsed: 0 }, 'life');
-              }
-              addParticle(p.x, p.y, '#66ccff', 8, 80, 0.4, 4);
-            } else { p._remove = true; }
-          } else if (p.type === 'knife') {
-            p.hit = p.hit || [];
-            if (p.hit.includes(e)) continue;
-            p.hit.push(e);
-            dealDmg(e, p.dmg, p);
-            // 物理2件：飞刀弹射
-            if (p.bounces > 0 && p.bounceUsed < p.bounces) {
-              p.bounceUsed++;
-              p.target = null; p.hit.length = 0; sfxBounce();
-              addParticle(p.x, p.y, '#cccccc', 5, 60, 0.3, 3);
-            } else { p._remove = true; }
-          } else {
-            // lspear 等穿透弹：同一敌人每发只命中一次
-            p.hit = p.hit || [];
-            if (p.hit.includes(e)) continue;
-            p.hit.push(e);
-            dealDmg(e, p.dmg, p);
-            if (p._remove) break;
-          }
-        }
-      }
-    }
-  }
-  compactPool(projectiles, p => p._remove || p.life <= 0);
+  // ===== 共享弹丸系统 =====
+  systemProjectiles(dt);
 
   for (let l of lightningEffects) {
     if (!l.active) continue;
@@ -1021,7 +862,12 @@ export function render() {
 export function gameLoop(ts) {
   const dt = lastTime ? (ts - lastTime) / 1000 : 0.016;
   lastTime = ts;
-  if (gameState.value === 'playing' || gameState.value === 'postupgrade') update(dt);
-  render();
+  if (gameState.value === 'playing' || gameState.value === 'postupgrade') {
+    update(dt);
+    render();
+  } else if (gameState.value === 'defense') {
+    if (window.__updateDefense) window.__updateDefense(dt);
+    if (window.__renderDefense) window.__renderDefense();
+  }
   requestAnimationFrame(gameLoop);
 }

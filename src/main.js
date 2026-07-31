@@ -3,8 +3,9 @@ import { setupInput } from './input.js';
 import { W, H } from './utils.js';
 import {
   setCanvas, setPostUpgrade, restartGame, startGame, gameLoop, getGameState,
-  canvas, ctx, gameState, gameTime
+  gameState, gameTime
 } from './game.js';
+import { startDefense } from './defense/entry.js';
 
 function main() {
   const c = document.getElementById('game');
@@ -24,8 +25,10 @@ function main() {
 
   window.__startGame = () => { initAudio(); startGame(); };
   window.__restartGame = () => restartGame();
+  window.__startDefense = () => { startDefense(); };
 
   document.getElementById('btn-start').addEventListener('click', window.__startGame);
+  document.getElementById('btn-start-defense').addEventListener('click', window.__startDefense);
   window.addEventListener('keydown', e => {
     if (e.key === 'Enter' && getGameState() === 'gameover') restartGame();
     if (e.key === 'Enter' && getGameState() === 'title') window.__startGame();
