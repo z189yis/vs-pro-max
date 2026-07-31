@@ -4,7 +4,7 @@
 import { player, gameState, gameTime, kills, currentWeather, initGameRefs } from '../game.js';
 import { WDEF, ATTACK } from '../config.js';
 import { rng, lerp, clamp, dist, distToSegment, addToPool, addParticle, onScreen, compactPool,
-  enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams, tidalWaves, garlicAuraAlpha } from '../utils.js';
+  enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams, tidalWaves, garlicAuraAlpha, W, H, camera } from '../utils.js';
 import { spawnEnemy, spawnBoss, enemyGrid, handleEnemyDeath, dealDmg, gameRefs } from '../entities.js';
 import { systemEnemies, systemProjectiles, systemWeapons, fireAttackSys, setSystemsCfg, setSystemsRefs } from '../systems.js';
 import { crystal, resetCrystal, crystalTakeDamage, updateCrystalShield, upgradeCrystal, repairCrystal, getNextCrystalUpgrade, CRYSTAL_REPAIR_COST } from './crystal.js';
@@ -291,6 +291,10 @@ export function updateDefense(dt) {
     player.y += my * player.speed * player.speedMult * dt;
   }
   player.angle = player.facingAngle;
+
+  // 相机：跟随玩家与水晶的中点（水晶永远在视野内）
+  camera.x = lerp(camera.x, (player.x + crystal.x) / 2 - W.value / 2, 8 * dt);
+  camera.y = lerp(camera.y, (player.y + crystal.y) / 2 - H.value / 2, 8 * dt);
 
   // 玩家死亡复活
   if (!player.alive) {
