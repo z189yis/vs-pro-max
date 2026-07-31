@@ -3,7 +3,7 @@
 
 import { player, gameState, gameTime, kills, currentWeather, initGameRefs } from '../game.js';
 import { WDEF, ATTACK } from '../config.js';
-import { rng, lerp, clamp, dist, distToSegment, addToPool, addParticle, onScreen, compactPool,
+import { rng, lerp, clamp, dist, distToSegment, addToPool, addParticle, addDmgNumber, onScreen, compactPool,
   enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams, tidalWaves, garlicAuraAlpha, W, H, camera } from '../utils.js';
 import { spawnEnemy, spawnBoss, enemyGrid, handleEnemyDeath, dealDmg, gameRefs } from '../entities.js';
 import { systemEnemies, systemProjectiles, systemWeapons, fireAttackSys, setSystemsCfg, setSystemsRefs } from '../systems.js';
@@ -138,10 +138,18 @@ export function initDefense() {
       // Boss 大掉宝：木材 + 金币（拾取时入账）
       dropGold(40, e.x, e.y);
       dropWood(5, e.x, e.y);
+      // 同时直接入账一部分，保证即时反馈
+      addGold(10);
+      addWood(1);
+      addDmgNumber(e.x, e.y - 20, '+10🪙', '#ffcc44');
       const banner = document.getElementById('defense-banner');
       if (banner) { banner.textContent = '💀 Boss 已被击败！'; banner.classList.add('active'); setTimeout(() => banner.classList.remove('active'), 2500); }
     } else {
-      if (Math.random() < 0.2) dropGold(1, e.x, e.y);
+      // 小怪：20% 概率直接入账 1 金币（即时反馈，无需走到掉落物旁）
+      if (Math.random() < 0.2) {
+        addGold(1);
+        addDmgNumber(e.x, e.y - 16, '+1', '#ffcc44');
+      }
     }
   };
 
