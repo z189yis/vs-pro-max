@@ -136,7 +136,7 @@ export function drawCrystal() {
   if (crystal.flash > 0) crystal.flash -= 0.016;
 }
 
-// 水晶在视野外时：边缘方向指示箭头
+// 水晶在视野外时：边缘方向指示箭头（受击时红色警示）
 export function drawCrystalArrow() {
   if (defState.value !== 'playing') return;
   const cx = sx(crystal.x), cy = sy(crystal.y);
@@ -144,29 +144,31 @@ export function drawCrystalArrow() {
   const outX = cx < -margin || cx > W.value + margin;
   const outY = cy < -margin || cy > H.value + margin;
   if (!outX && !outY) return;
+  // 受击警示状态（update 层每帧同步）
+  const underAttack = document.getElementById('crystal-bar-wrap')?.classList.contains('under-attack') || false;
   // 箭头位置：钳制到屏幕边缘内侧
   const ax = clamp(cx, 50, W.value - 50);
   const ay = clamp(cy, 50, H.value - 50);
-  const angle = Math.atan2(crystal.y - (ax + camera.x), crystal.x - (ay + camera.y));
-  const pulse = 1 + Math.sin(gameTime.value * 6) * 0.15;
+  const angle = Math.atan2(crystal.y - (ay + camera.y), crystal.x - (ax + camera.x));
+  const pulse = 1 + Math.sin(gameTime.value * (underAttack ? 10 : 6)) * 0.15;
   ctx.save();
   ctx.translate(ax, ay);
   ctx.rotate(angle);
-  ctx.globalAlpha = 0.85;
-  ctx.fillStyle = '#66ccff';
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = underAttack ? '#ff4444' : '#66ccff';
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(16 * pulse, 0);
-  ctx.lineTo(-8, -9);
-  ctx.lineTo(-8, 9);
+  ctx.moveTo(18 * pulse, 0);
+  ctx.lineTo(-8, -10);
+  ctx.lineTo(-8, 10);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-  ctx.font = 'bold 11px "Segoe UI",sans-serif';
-  ctx.fillStyle = '#66ccff';
+  ctx.font = 'bold 12px "Segoe UI",sans-serif';
+  ctx.fillStyle = underAttack ? '#ff4444' : '#66ccff';
   ctx.textAlign = 'center';
-  ctx.fillText('💎', 26, 4);
+  ctx.fillText(underAttack ? '⚠' : '💎', 28, 4);
   ctx.restore();
 }
 

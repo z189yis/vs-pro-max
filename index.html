@@ -67,7 +67,10 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 /* 防御 HUD */
 #defense-hud { position: absolute; top: 0; left: 0; right: 0; padding: 8px 16px; display: none; flex-direction: column; gap: 6px; pointer-events: none; z-index: 10; }
 #defense-hud.active { display: flex; }
-#crystal-bar-wrap { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 320px; height: 18px; background: rgba(0,0,0,0.6); border-radius: 9px; border: 1px solid rgba(120,200,255,0.3); overflow: hidden; z-index: 11; pointer-events: none; }
+#crystal-bar-wrap { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 320px; height: 18px; background: rgba(0,0,0,0.6); border-radius: 9px; border: 1px solid rgba(120,200,255,0.3); overflow: hidden; z-index: 11; pointer-events: none; transition: border-color 0.2s, box-shadow 0.2s; }
+#crystal-bar-wrap.under-attack { border-color: #ff4444; box-shadow: 0 0 18px rgba(255,60,60,0.7); animation: attack-pulse 0.8s ease-in-out infinite; }
+#crystal-bar-fill.under-attack { background: linear-gradient(90deg, #dd3333, #ff6666); }
+@keyframes attack-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
 #crystal-bar-fill { height: 100%; background: linear-gradient(90deg, #3388dd, #66ccff); border-radius: 9px; transition: width 0.2s; }
 #crystal-bar-label { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 11px; font-weight: bold; text-shadow: 0 0 4px rgba(0,0,0,0.9); z-index: 12; pointer-events: none; white-space: nowrap; }
 #crystal-actions { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 11; pointer-events: auto; }.crystal-btn { padding: 4px 12px; font-size: 12px; background: rgba(20,30,60,0.85); color: #ffcc44; border: 1px solid rgba(255,204,68,0.4); border-radius: 14px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }

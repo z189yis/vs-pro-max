@@ -168,6 +168,12 @@ export function dropWood(n, x, y) {
   }, 'life');
 }
 
+// 水晶是否在视野内
+function crystalVisible() {
+  const cx = crystal.x - camera.x, cy = crystal.y - camera.y;
+  return cx > -40 && cx < W.value + 40 && cy > -40 && cy < H.value + 40;
+}
+
 // 修理水晶（金币消耗）
 export function doRepairCrystal() {
   if (defState.gold < CRYSTAL_REPAIR_COST) return false;
@@ -292,12 +298,7 @@ export function updateDefense(dt) {
   }
   player.angle = player.facingAngle;
 
-  // 战斗区域边界：以水晶为中心 ±1200px（玩家被限制在区域内，相机永远不丢玩家）
-  const WORLD = 1200;
-  player.x = clamp(player.x, -WORLD, WORLD);
-  player.y = clamp(player.y, -WORLD, WORLD);
-
-  // 相机：完全跟随玩家（玩家已在世界内，不会出视野）
+  // 相机：无限跟随玩家（与生存模式一致）—— 玩家可自由探索大世界
   camera.x = lerp(camera.x, player.x - W.value / 2, 8 * dt);
   camera.y = lerp(camera.y, player.y - H.value / 2, 8 * dt);
 
@@ -344,9 +345,11 @@ export function updateDefense(dt) {
   systemEnemies(dt);
 
   // 敌人攻击水晶
+  let crystalUnderAttack = false;
   for (let e of enemies) {
     if (!e.active || e._dead) continue;
     if (dist(e, crystal) < e.size + 30) {
+      crystalUnderAttack = true;
       const hadShield = crystal.shield > 0;
       const actual = crystalTakeDamage(e.dmg * dt);
       // 音效反馈
@@ -358,6 +361,14 @@ export function updateDefense(dt) {
       }
       e.hitFlash = 0.1;
     }
+  }
+  // 水晶受击警告（视野外时触发 HUD 红色警示）
+  if (crystalUnderAttack && !crystalVisible()) {
+    document.getElementById('defense-hud').classList.add('under-attack');
+    document.getElementById('crystal-bar-wrap').classList.add('under-attack');
+  } else {
+    document.getElementById('defense-hud').classList.remove('under-attack');
+    document.getElementById('crystal-bar-wrap').classList.remove('under-attack');
   }
   if (crystal.hp <= 0) {
     defState.value = 'defeat';
