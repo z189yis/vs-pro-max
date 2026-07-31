@@ -39,6 +39,8 @@ export function initDefense() {
   initGameRefs();
   // 敌人生成中心 = 水晶（防守模式特有）
   gameRefs.spawnCenter = () => crystal;
+  // 隐藏 Roll 按钮（选英雄后显示）
+  document.getElementById('btn-roll-open').style.display = 'none';
 
   // 玩家初始状态（基础值，英雄属性由 applyHero 叠加）
   Object.assign(player, {
