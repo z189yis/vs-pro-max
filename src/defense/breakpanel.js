@@ -2,11 +2,12 @@
 
 import { rollArtifactOptions, pickArtifact, breakState } from './breakthrough.js';
 import { player } from '../game.js';
-import { sfxLevelUp } from '../audio.js';
+import { sfxLevelUp, sfxBreakthrough } from '../audio.js';
 
 // 打开突破面板（三选一）
 export function openBreakthroughPanel() {
   const opts = rollArtifactOptions();
+  sfxBreakthrough();
   const c = document.getElementById('breakthrough-cards');
   if (!c) return;
   c.innerHTML = '';

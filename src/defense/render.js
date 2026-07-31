@@ -105,6 +105,33 @@ export function drawCrystal() {
     ctx.restore();
   }
 
+  // 护盾视觉：满盾 = 蓝色光环；充能中 = 进度弧
+  if (crystal.shieldCharging) {
+    ctx.save();
+    if (crystal.shield > 0) {
+      // 满盾：脉冲光环
+      const pulse2 = 1 + Math.sin(gameTime.value * 5) * 0.08;
+      ctx.strokeStyle = 'rgba(120,220,255,0.9)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, (r + 8) * pulse2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(120,220,255,0.12)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, (r + 8) * pulse2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // 充能中：进度弧
+      const prog = Math.min(1, crystal.shieldChargeTimer / 45);
+      ctx.strokeStyle = 'rgba(120,200,255,0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // 受击闪烁粒子
   if (crystal.flash > 0) crystal.flash -= 0.016;
 }

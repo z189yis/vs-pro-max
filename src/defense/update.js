@@ -16,7 +16,7 @@ import { openRollPanel, closeRollPanel, reroll, lockRoll, updateRollButtons } fr
 import { checkBreakthrough, breakState } from './breakthrough.js';
 import { openBreakthroughPanel, closeBreakthroughPanel } from './breakpanel.js';
 import { HEROES, applyHero, triggerHeroPassive, setHeroDmgFn } from './heroes.js';
-import { sfxLevelUp, sfxPickup, sfxPlayerHit, sfxShoot, sfxGameOver } from '../audio.js';
+import { sfxLevelUp, sfxPickup, sfxPlayerHit, sfxShoot, sfxGameOver, sfxCrystalHit, sfxCrystalShield, sfxCrystalRepair, sfxCrystalUpgrade, sfxBossWarning, sfxVictory, sfxBreakthrough } from '../audio.js';
 import { keys, joystick, resetInput } from '../input.js';
 
 export const defenseGameTime = { value: 0 };
@@ -172,6 +172,7 @@ export function doRepairCrystal() {
   if (crystal.hp >= crystal.maxHp) return false;
   spendGold(CRYSTAL_REPAIR_COST);
   repairCrystal();
+  sfxCrystalRepair();
   addParticle(crystal.x, crystal.y, '#88ddff', 15, 100, 0.5, 4);
   updateCrystalButtons();
   return true;
@@ -184,6 +185,7 @@ export function doUpgradeCrystal() {
   if (defState.wood < u.cost) return false;
   spendWood(u.cost);
   upgradeCrystal();
+  sfxCrystalUpgrade();
   addParticle(crystal.x, crystal.y, '#aaddff', 20, 120, 0.6, 5);
   const banner = document.getElementById('defense-banner');
   if (banner) { banner.textContent = `💎 水晶升级 Lv${crystal.level}：${u.desc}`; banner.classList.add('active'); setTimeout(() => banner.classList.remove('active'), 3500); }
@@ -237,6 +239,17 @@ function startWave(n) {
   waveState.bossSpawnAt = isBossWave(n) ? FIGHT_DURATION / 3 : 0;
   waveState.spawnTimer = 0;
   waveState.spawned = 0;
+  // Boss 波预告（提前 5 秒红字警告 + 音效）
+  if (isBossWave(n)) {
+    sfxBossWarning();
+    const banner = document.getElementById('defense-banner');
+    if (banner) {
+      banner.textContent = `⚠ 第 ${n} 波：BOSS 来袭！⚠`;
+      banner.style.borderColor = '#ff4444';
+      banner.classList.add('active');
+      setTimeout(() => { banner.classList.remove('active'); banner.style.borderColor = ''; }, 3000);
+    }
+  }
   showWaveBanner();
 }
 
@@ -323,7 +336,11 @@ export function updateDefense(dt) {
   for (let e of enemies) {
     if (!e.active || e._dead) continue;
     if (dist(e, crystal) < e.size + 30) {
+      const hadShield = crystal.shield > 0;
       const actual = crystalTakeDamage(e.dmg * dt);
+      // 音效反馈
+      if (hadShield) sfxCrystalShield();
+      else if (actual > 0) sfxCrystalHit();
       // 伤害反射（升级 4）
       if (actual > 0 && crystal.reflectPct > 0) {
         dealDmg(e, actual * crystal.reflectPct, null, '#66ccff', 'arcane');
@@ -432,9 +449,10 @@ function spawnWaveBatch() {
 }
 
 function spawnBossWave() {
-  // Boss 波：Boss 按波次缩放 + 2 只小怪
+  // Boss 波：Boss 按波次缩放 + 小怪（按波次递增，为 Boss 让出压力）
   spawnBoss(rng(500, 650), enemyHpMult());
-  for (let i = 0; i < 2; i++) spawnEnemy('fast', rng(250, 450), { hpMult: enemyHpMult(), spdMult: enemySpeedMult() });
+  const escortCount = 2 + Math.floor(waveState.number / 5);
+  for (let i = 0; i < escortCount; i++) spawnEnemy('fast', rng(250, 450), { hpMult: enemyHpMult(), spdMult: enemySpeedMult() });
   // Boss 波公告
   const banner = document.getElementById('defense-banner');
   if (banner) { banner.textContent = '⚠ BOSS 波来袭 ⚠'; banner.classList.add('active'); setTimeout(() => banner.classList.remove('active'), 3000); }
@@ -539,7 +557,8 @@ function showEndScreen(result) {
   document.getElementById('defense-end-kills').textContent = defState.totalKills;
   document.getElementById('defense-end-gold').textContent = defState.gold;
   document.getElementById('defense-end-wood').textContent = defState.wood;
-  sfxGameOver();
+  if (result === 'victory') sfxVictory();
+  else sfxGameOver();
 }
 
 // 供 entry 使用的退出清理

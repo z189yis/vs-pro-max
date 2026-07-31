@@ -8,7 +8,7 @@ export const HEROES = [
     icon: '🛡️',
     desc: '生命+60 · 受到伤害-15%',
     statMods: { maxHp: 60, dmgTakenMult: 0.85 },
-    weapon: 'garlic',
+    weapons: ['garlic', 'axe'],
     passive: 'thorns'
   },
   {
@@ -17,7 +17,7 @@ export const HEROES = [
     icon: '🗡️',
     desc: '普攻伤害+50% · 移速+15%',
     statMods: { attackDmgMult: 1.5, speedMult: 1.15 },
-    weapon: 'knife',
+    weapons: ['knife', 'ice_shard'],
     passive: 'crit'
   },
   {
@@ -26,7 +26,7 @@ export const HEROES = [
     icon: '🔮',
     desc: '武器伤害+25% · 冷却-15%',
     statMods: { dmgMult: 1.25, cdMult: 0.85 },
-    weapon: 'magic_missile',
+    weapons: ['magic_missile', 'lightning_spear'],
     passive: 'manaCascade'
   }
 ];
@@ -61,7 +61,7 @@ export const HERO_PASSIVES = {
 // 应用英雄属性与初始武器（同时设置基础被动等级）
 export function applyHero(player, hero) {
   for (let k in hero.statMods) player[k] = hero.statMods[k];
-  player.weapons = [{ id: hero.weapon, _timer: 0 }];
+  player.weapons = hero.weapons.map(id => ({ id, _timer: 0 }));
   player.heroId = hero.id;
   player.heroPassive = hero.passive;
   player.heroPassiveLv = 1;

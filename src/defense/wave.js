@@ -29,19 +29,19 @@ export function isFinalWave() { return waveState.number === TOTAL_WAVES; }
 
 // 刷怪间隔（秒）：随波数缩短
 export function spawnInterval() {
-  return Math.max(0.8, 2.2 - waveState.number * 0.06);
+  return Math.max(1.0, 2.4 - waveState.number * 0.06);
 }
 
 // 每波小怪总数
 export function waveEnemyCount() {
-  return 4 + waveState.number * 2;
+  return 3 + waveState.number * 2;
 }
 
 // 敌人强度倍率（波次驱动）
 export function enemyHpMult() {
   const w = waveState.number;
-  let m = 1 + (w - 1) * 0.18;
-  if (w >= 5) m += Math.pow(w - 5, 1.6) * 0.03;
+  let m = 1 + (w - 1) * 0.14;
+  if (w >= 5) m += Math.pow(w - 5, 1.6) * 0.02;
   return m;
 }
 

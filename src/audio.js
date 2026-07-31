@@ -69,3 +69,17 @@ export function sfxReaction(type) {
     sfxFire();
   }
 }
+
+// ===== 防守模式音效 =====
+export function sfxCrystalHit() { beep(140, 0.08, 'sawtooth', 0.08, -40); }
+export function sfxCrystalShield() { beep(900, 0.12, 'sine', 0.09, 300); }
+export function sfxCrystalRepair() { beep(500, 0.1, 'sine', 0.08, 300); beep(700, 0.08, 'sine', 0.06, 200); }
+export function sfxCrystalUpgrade() { beep(400, 0.15, 'sine', 0.1, 500); setTimeout(() => beep(600, 0.12, 'sine', 0.08, 400), 100); }
+export function sfxBossWarning() { beep(120, 0.5, 'sawtooth', 0.12, -30); setTimeout(() => beep(100, 0.5, 'sawtooth', 0.1, -20), 350); }
+export function sfxVictory() {
+  beep(523, 0.12, 'sine', 0.1);
+  setTimeout(() => beep(659, 0.12, 'sine', 0.1), 120);
+  setTimeout(() => beep(784, 0.12, 'sine', 0.1), 240);
+  setTimeout(() => beep(1046, 0.3, 'sine', 0.12), 360);
+}
+export function sfxBreakthrough() { beep(300, 0.2, 'sine', 0.1, 600); setTimeout(() => beep(450, 0.2, 'sine', 0.1, 800), 150); }

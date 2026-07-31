@@ -4,7 +4,7 @@
 
 export const crystal = {
   x: 0, y: 0, hp: 500, maxHp: 500,
-  level: 1, shield: 0, regen: 0, flash: 0, respawnTimer: 0,
+  level: 1, shield: 0, regen: 1, flash: 0, respawnTimer: 0,   // 基础回血 1/s
   // M2
   shieldCharging: false,    // 护盾充能中（升级后解锁）
   shieldChargeTimer: 0,
@@ -17,16 +17,16 @@ export const CRYSTAL_REPAIR_PCT = 0.25;
 export function resetCrystal() {
   Object.assign(crystal, {
     x: 0, y: 0, hp: 500, maxHp: 500,
-    level: 1, shield: 0, regen: 0, flash: 0, respawnTimer: 0,
+    level: 1, shield: 0, regen: 1, flash: 0, respawnTimer: 0,
     shieldCharging: false, shieldChargeTimer: 0, reflectPct: 0
   });
 }
 
 // 升级（木材消耗）；每次升级一次性生效
 export const CRYSTAL_UPGRADES = [
-  { level: 2, cost: 10, addHp: 150, regen: 1, desc: '水晶血量 +150 · 每秒回血 +1' },
-  { level: 3, cost: 20, addHp: 200, regen: 1, desc: '水晶血量 +200 · 护盾：每 45 秒抵挡一次伤害' },
-  { level: 4, cost: 35, addHp: 300, regen: 2, desc: '水晶血量 +300 · 伤害反射 15%' }
+  { level: 2, cost: 10, addHp: 150, regen: 2, desc: '水晶血量 +150 · 回血提升至 2/s' },
+  { level: 3, cost: 20, addHp: 200, regen: 2, desc: '水晶血量 +200 · 护盾：每 45 秒抵挡一次伤害' },
+  { level: 4, cost: 35, addHp: 300, regen: 3, desc: '水晶血量 +300 · 回血 3/s · 伤害反射 15%' }
 ];
 
 // 护盾冷却时间（秒）
