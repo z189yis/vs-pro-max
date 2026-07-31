@@ -92,7 +92,8 @@ function fireWeaponOnce(weapon, s, pd, castIndex) {
       sfxLightning();
       const extraN = player.synergyLightningExtra || 0;
       const totalN = s.n + extraN;
-      const alive = gameRefs.enemies.filter(e => e.active && !e._dead && onScreen(e.x, e.y, 0));
+      // 范围限制：只打击玩家周围 500px 内的敌人（防守模式大世界下不隔空打远处）
+      const alive = gameRefs.enemies.filter(e => e.active && !e._dead && onScreen(e.x, e.y, 0) && dist(player, e) < 500);
       const targets = [];
       for (let i = 0; i < Math.min(totalN, alive.length); i++) {
         const idx = irng(0, alive.length - 1);
@@ -126,7 +127,8 @@ function fireWeaponOnce(weapon, s, pd, castIndex) {
       sfxLightningSpear();
       const extraN = player.synergyLightningExtra || 0;
       const totalN = s.n + extraN;
-      const alive2 = gameRefs.enemies.filter(e => e.active && !e._dead);
+      // 范围限制：只索敌玩家周围 700px 内
+      const alive2 = gameRefs.enemies.filter(e => e.active && !e._dead && dist(player, e) < 700);
       alive2.sort((a, b) => dist(player, a) - dist(player, b));
       const tgs = [];
       for (let i = 0; i < Math.min(totalN, alive2.length); i++) tgs.push(alive2[i]);
@@ -185,7 +187,8 @@ function fireWeaponOnce(weapon, s, pd, castIndex) {
     }
     case 'blizzard': {
       sfxBlizzard();
-      const alive = gameRefs.enemies.filter(e => e.active && !e._dead && onScreen(e.x, e.y, 0));
+      // 范围限制：只索敌玩家周围 500px 内
+      const alive = gameRefs.enemies.filter(e => e.active && !e._dead && onScreen(e.x, e.y, 0) && dist(player, e) < 500);
       const radiusMult = player.synergyBlizzardRadius || 1;
       for (let i = 0; i < s.n; i++) {
         let tx, ty;
@@ -224,10 +227,11 @@ function fireWeaponOnce(weapon, s, pd, castIndex) {
       sfxDisintegrate();
       const widthMult = player.synergyBeamWidth || 1;
       let target = null, nd = Infinity;
+      // 范围限制：只索敌玩家周围 600px 内
       for (let e of gameRefs.enemies) {
         if (!e.active || e._dead) continue;
         const d = dist(player, e);
-        if (d < nd) { nd = d; target = e; }
+        if (d < nd && d < 600) { nd = d; target = e; }
       }
       let angle = player.facingAngle;
       let endX = player.x + Math.cos(angle) * s.range;

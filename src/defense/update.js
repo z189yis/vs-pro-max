@@ -150,21 +150,21 @@ export function initDefense() {
   showWaveBanner();
 }
 
-// 掉落金币拾取物（复用 xpGem 池）
+// 掉落金币拾取物（复用 xpGem 池，携带实际金额）
 export function dropGold(n, x, y) {
   addToPool(xpGems, 300, {
     x: x + rng(-10, 10), y: y + rng(-10, 10),
     value: 0, life: 60, bobOff: Math.random() * Math.PI * 2,
-    _isGold: true, _isWood: false
+    _isGold: true, _isWood: false, amount: n
   }, 'life');
 }
 
-// 掉落木材拾取物（复用 xpGem 池）
+// 掉落木材拾取物（复用 xpGem 池，携带实际数量）
 export function dropWood(n, x, y) {
   addToPool(xpGems, 300, {
     x: x + rng(-10, 10), y: y + rng(-10, 10),
     value: 0, life: 60, bobOff: Math.random() * Math.PI * 2,
-    _isGold: false, _isWood: true
+    _isGold: false, _isWood: true, amount: n
   }, 'life');
 }
 
@@ -409,13 +409,13 @@ export function updateDefense(dt) {
     if (d < 18) {
       gem._picked = true;
       if (gem._isGold) {
-        // 金币拾取入账
-        addGold(1);
+        // 金币拾取入账（按掉落实际金额）
+        addGold(gem.amount || 1);
         addParticle(gem.x, gem.y, '#ffcc44', 5, 60, 0.3, 3);
         sfxPickup();
       } else if (gem._isWood) {
-        // 木材拾取入账
-        addWood(1);
+        // 木材拾取入账（按掉落实际数量）
+        addWood(gem.amount || 1);
         addParticle(gem.x, gem.y, '#ff8844', 6, 60, 0.3, 3);
         sfxPickup();
       } else {
@@ -491,9 +491,10 @@ function showWaveBanner() {
 function showWaveEndBanner() {
   const banner = document.getElementById('defense-banner');
   if (!banner) return;
-  banner.textContent = '🌙 发育时间';
+  // 发育窗口引导：剩余敌人清场 + 提示可做的事
+  banner.textContent = '🌙 发育时间：清理残敌 · 按 R 抽技能 · 修理/升级水晶';
   banner.classList.add('active');
-  setTimeout(() => banner.classList.remove('active'), 2500);
+  setTimeout(() => banner.classList.remove('active'), 3500);
 }
 
 function updateTidalWavesLocal(dt) {
