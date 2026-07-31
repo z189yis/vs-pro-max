@@ -292,9 +292,16 @@ export function updateDefense(dt) {
   }
   player.angle = player.facingAngle;
 
-  // 相机：跟随玩家与水晶的中点（水晶永远在视野内）
-  camera.x = lerp(camera.x, (player.x + crystal.x) / 2 - W.value / 2, 8 * dt);
-  camera.y = lerp(camera.y, (player.y + crystal.y) / 2 - H.value / 2, 8 * dt);
+  // 相机：以玩家为中心（与生存模式一致），但 clamp 保证水晶不丢出视野
+  let tx = player.x - W.value / 2;
+  let ty = player.y - H.value / 2;
+  const M = 150; // 水晶至少保留在视野边缘 150px 内
+  if (crystal.x < tx + M) tx = crystal.x - M;
+  if (crystal.x > tx + W.value - M) tx = crystal.x - (W.value - M);
+  if (crystal.y < ty + M) ty = crystal.y - M;
+  if (crystal.y > ty + H.value - M) ty = crystal.y - (H.value - M);
+  camera.x = lerp(camera.x, tx, 8 * dt);
+  camera.y = lerp(camera.y, ty, 8 * dt);
 
   // 玩家死亡复活
   if (!player.alive) {
