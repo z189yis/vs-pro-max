@@ -13,6 +13,8 @@ import { defState, resetDefState, addGold, addWood, spendGold, spendWood } from 
 import { setPassivePlayerRef } from './passives.js';
 import { rollState, resetRollState } from './roll.js';
 import { openRollPanel, closeRollPanel, reroll, lockRoll, updateRollButtons } from './rollpanel.js';
+import { checkBreakthrough, breakState } from './breakthrough.js';
+import { openBreakthroughPanel, closeBreakthroughPanel } from './breakpanel.js';
 import { HEROES, applyHero, triggerHeroPassive, setHeroDmgFn } from './heroes.js';
 import { sfxLevelUp, sfxPickup, sfxPlayerHit, sfxShoot, sfxGameOver } from '../audio.js';
 import { keys, joystick, resetInput } from '../input.js';
@@ -242,10 +244,9 @@ export function updateDefense(dt) {
   if (firstFrame) { firstFrame = false; }
   if (defState.value !== 'playing') return;
   dt = Math.min(dt, 0.1);
-  defenseGameTime.value += dt;
 
   // R 键开关 Roll 面板（仅 break 窗口；fight 期间禁止打开）
-  if (keys['r'] && waveState.phase === 'break' && !rollState.open) {
+  if (keys['r'] && waveState.phase === 'break' && !rollState.open && !breakState.pending) {
     keys['r'] = false;
     openRollPanel();
   } else if (keys['escape'] && rollState.open) {
@@ -253,6 +254,9 @@ export function updateDefense(dt) {
     closeRollPanel();
   }
   if (rollState.open) return; // 面板打开时暂停游戏
+  if (breakState.pending) return; // 突破面板打开时暂停游戏
+
+  defenseGameTime.value += dt;
 
   if (player.regenRate > 0) player.hp = Math.min(player.maxHp, player.hp + player.regenRate * dt);
   if (player.iframes > 0) player.iframes -= dt;
@@ -384,13 +388,17 @@ export function updateDefense(dt) {
   }
   compactPool(xpGems, g => g._picked || g.life <= 0);
 
-  // 升级（防守模式：升级仅加属性，无三选一）
+  // 升级（防守模式：升级仅加属性，无三选一；每 10 级触发突破）
   if (player.xp >= player.xpToNext) {
     player.xp -= player.xpToNext;
     player.level++;
     player.xpToNext = 5 + player.level * 3;
     player.hp = Math.min(player.maxHp, player.hp + 15);
-    // M4：突破逻辑将在这里接入
+    // M4：突破（每 10 级三选一法宝）
+    if (checkBreakthrough(player.level)) {
+      openBreakthroughPanel();
+      return; // 暂停本帧（面板打开）
+    }
     addParticle(player.x, player.y, '#ffcc44', 20, 120, 0.6, 5);
     updateHUD();
   }
@@ -542,6 +550,7 @@ export function disposeDefense() {
   document.getElementById('defense-banner').classList.remove('active');
   document.getElementById('roll-overlay').classList.remove('active');
   document.getElementById('btn-roll-open').style.display = 'none';
+  document.getElementById('breakthrough-overlay').classList.remove('active');
 }
 
 // 重开一局（保留已选英雄，回到选择界面）
