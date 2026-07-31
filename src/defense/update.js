@@ -13,7 +13,7 @@ import { defState, resetDefState, addGold, addWood, spendGold, spendWood } from 
 import { setPassivePlayerRef } from './passives.js';
 import { rollState, resetRollState, onWaveStart } from './roll.js';
 import { openRollPanel, closeRollPanel, reroll, lockRoll, updateRollButtons } from './rollpanel.js';
-import { castSkill, tickSkills, SKILLS as SKILL_DEFS } from './skills.js';
+import { tickSkills, autoCastSkills, SKILLS as SKILL_DEFS } from './skills.js';
 import { checkBreakthrough, breakState } from './breakthrough.js';
 import { openBreakthroughPanel, closeBreakthroughPanel } from './breakpanel.js';
 import { HEROES, applyHero, triggerHeroPassive, setHeroDmgFn } from './heroes.js';
@@ -294,12 +294,8 @@ export function updateDefense(dt) {
     keys['escape'] = false;
     closeRollPanel();
   }
-  // 主动技能施放（1-4 键）
-  if (keys['1'] && !rollState.open && !breakState.pending) { keys['1'] = false; castSkillAt('1'); }
-  if (keys['2'] && !rollState.open && !breakState.pending) { keys['2'] = false; castSkillAt('2'); }
-  if (keys['3'] && !rollState.open && !breakState.pending) { keys['3'] = false; castSkillAt('3'); }
-  if (keys['4'] && !rollState.open && !breakState.pending) { keys['4'] = false; castSkillAt('4'); }
-  tickSkills(dt); // 技能冷却/护盾/狂暴计时
+  // 主动技能冷却（每帧）
+  tickSkills(dt);
   if (rollState.open) return; // 面板打开时暂停游戏
   if (breakState.pending) return; // 突破面板打开时暂停游戏
 
@@ -365,6 +361,9 @@ export function updateDefense(dt) {
   // 重建空间网格（敌人查询依赖）
   enemyGrid.clear();
   for (let e of enemies) { if (e._dead || !e.active) continue; enemyGrid.insert(e); }
+
+  // 主动技能自动释放（网格就绪后：冷却好 + 有目标时）
+  autoCastSkills();
 
   // 敌人系统（AI 目标 = 水晶，由 systems 注入）
   systemEnemies(dt);
@@ -483,21 +482,8 @@ export function updateDefense(dt) {
   updateHUD();
 }
 
-// 按技能槽位施放（1-4 对应第 1-4 个已学技能）
-function castSkillAt(slot) {
-  const p = player;
-  if (!p.skills || !p.skills.length) return;
-  const idx = parseInt(slot) - 1;
-  if (idx >= p.skills.length) return;
-  const s = p.skills[idx];
-  const ok = castSkill(s.id);
-  if (ok) updateSkillBar();
-}
-
-// 移动端技能按钮：window.__castSkillSlot(i) → 施放第 i 个技能
-export function setupSkillCast() {
-  window.__castSkillSlot = (i) => castSkillAt(String(i));
-}
+// 移动端技能按钮已废弃（技能自动释放），保留 setupSkillCast 空实现以防旧引用
+export function setupSkillCast() {}
 
 function spawnWaveBatch() {
   const count = 2;
