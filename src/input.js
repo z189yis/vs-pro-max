@@ -132,11 +132,13 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if (getGameState() === 'postupgrade') { setPostUpgrade(); }
-    e.preventDefault();
+    // 只拦截游戏按键，保留 F5/Ctrl+R/空格 等浏览器快捷键
+    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(e.key.toLowerCase())) {
+      e.preventDefault();
+    }
   });
   window.addEventListener('keyup', e => {
     keys[e.key.toLowerCase()] = false;
-    e.preventDefault();
   });
 }
 

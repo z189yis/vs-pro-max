@@ -150,29 +150,22 @@ export function getSynergyProgress(el) {
 // ===== 升级系统 =====
 
 export function getUpgradeOptions() {
-  let o = [];
-  // 新武器选项（未满上限时）
+  // 候选池：未持有武器 + 全部被动，洗牌后按序取前 4
   const oids = new Set(player.weapons.map(w => w.id));
+  const pool = [];
   if (player.weapons.length < MAX_WEAPONS) {
-    for (let [id] of Object.entries(WDEF)) { if (!oids.has(id)) o.push({ type: 'new_weapon', weaponId: id }); }
+    for (let [id] of Object.entries(WDEF)) { if (!oids.has(id)) pool.push({ type: 'new_weapon', weaponId: id }); }
   }
-  // 被动属性选项
-  for (let p of PASSIVES) o.push({ type: 'passive', passiveId: p.id });
-  // 打乱
-  for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
-  // 分离武器和被动
-  const wo = o.filter(x => x.type === 'new_weapon');
-  const po = o.filter(x => x.type === 'passive');
-  let r = [];
-  // 优先给 2 个武器选项（如果有）
-  r.push(...wo.slice(0, 2));
-  // 填充被动到 4 个
-  while (r.length < 4) { const x = po[Math.floor(Math.random() * po.length)]; if (!r.includes(x)) r.push(x); else r.push(po[Math.floor(Math.random() * po.length)]); }
-  // 去重
-  const seen = new Set(), final = [];
-  for (let x of r) { const k = x.type + '_' + (x.weaponId || x.passiveId); if (!seen.has(k)) { seen.add(k); final.push(x); } }
-  while (final.length < 4 && po.length > 0) { final.push(po[Math.floor(Math.random() * po.length)]); if (final.length > 4) break; }
-  return final.slice(0, 4);
+  for (let p of PASSIVES) pool.push({ type: 'passive', passiveId: p.id });
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  // 武器优先：先满足 2 个武器位（如有），其余位置由被动填充
+  const r = [];
+  for (let x of pool) {
+    if (r.length >= 4) break;
+    if (x.type === 'new_weapon' && r.length >= 2) continue;
+    if (!r.includes(x)) r.push(x);
+  }
+  return r;
 }
 
 export function showUpgradePanel() {
@@ -610,11 +603,14 @@ export function update(dt) {
       } else if (p.type === 'attack') {
         const d = dist(p, e);
         if (d < p.size + e.size) {
+          p.hit = p.hit || [];
+          if (p.hit.includes(e)) continue;
+          p.hit.push(e);
           dealDmg(e, p.dmg, p, '#ffffff');
           // 物理4件：普攻弹射
           if (p.bounces > 0 && (!p.bounceUsed || p.bounceUsed < p.bounces)) {
             p.bounceUsed = (p.bounceUsed || 0) + 1;
-            p.target = null; p.hit = p.hit || [];
+            p.target = null; p.hit.length = 0;
             sfxBounce();
             addParticle(p.x, p.y, '#ffffff', 5, 60, 0.3, 3);
           } else {
@@ -625,6 +621,9 @@ export function update(dt) {
       } else if (p.type === 'ice_shard_synergy') {
         const d = dist(p, e);
         if (d < p.size + e.size) {
+          p.hit = p.hit || [];
+          if (p.hit.includes(e)) continue;
+          p.hit.push(e);
           dealDmg(e, p.dmg, p, '#aaddff', 'ice');
           p._remove = true; break;
         }
@@ -632,37 +631,42 @@ export function update(dt) {
         const d = dist(p, e);
         if (d < p.size + e.size) {
           if (p.type === 'missile') {
-            const hitBefore = p.hit.includes(e); dealDmg(e, p.dmg, p);
-            if (!hitBefore) {
-              p.hit.push(e);
-              // 奥术4件：命中概率重置冷却
-              checkArcaneReset('magic_missile');
-              if (p.bounces > 0 && p.bounceUsed < p.bounces) {
-                p.bounceUsed++; p.target = null; p.hit.length = 0; sfxBounce();
-                addParticle(p.x, p.y, '#66ccff', 5, 60, 0.3, 3);
-              } else if (p.splits > 0 && !p._split) {
-                p._split = true;
-                for (let si = 0; si < p.splits; si++) {
-                  const sa = randAngle();
-                  addToPool(projectiles, 400, { x: p.x, y: p.y, vx: 0, vy: 0, spd: p.spd * 0.7, angle: sa, turnRate: p.turnRate + 2, dmg: p.dmg * 0.6, bounces: 0, splits: 0, pierce: 0, life: p.life * 0.6, type: 'missile', color: '#88ddff', size: 3, target: null, trail: [], hit: [], bounceUsed: 0 }, 'life');
-                }
-                addParticle(p.x, p.y, '#66ccff', 8, 80, 0.4, 4);
-              } else { p._remove = true; }
-            }
-          } else if (p.type === 'knife') {
-            const hitBefore = p.hit && p.hit.includes(e);
+            p.hit = p.hit || [];
+            if (p.hit.includes(e)) continue;
+            p.hit.push(e);
             dealDmg(e, p.dmg, p);
-            if (!hitBefore) {
-              p.hit = p.hit || [];
-              p.hit.push(e);
-              // 物理2件：飞刀弹射
-              if (p.bounces > 0 && (!p.bounceUsed || p.bounceUsed < p.bounces)) {
-                p.bounceUsed = (p.bounceUsed || 0) + 1;
-                p.target = null; p.hit.length = 0; sfxBounce();
-                addParticle(p.x, p.y, '#cccccc', 5, 60, 0.3, 3);
-              } else { p._remove = true; }
-            }
-          } else { dealDmg(e, p.dmg, p); if (p._remove) break; }
+            // 奥术4件：命中概率重置冷却
+            checkArcaneReset('magic_missile');
+            if (p.bounces > 0 && p.bounceUsed < p.bounces) {
+              p.bounceUsed++; p.target = null; p.hit.length = 0; sfxBounce();
+              addParticle(p.x, p.y, '#66ccff', 5, 60, 0.3, 3);
+            } else if (p.splits > 0 && !p._split) {
+              p._split = true;
+              for (let si = 0; si < p.splits; si++) {
+                const sa = randAngle();
+                addToPool(projectiles, 400, { x: p.x, y: p.y, vx: 0, vy: 0, spd: p.spd * 0.7, angle: sa, turnRate: p.turnRate + 2, dmg: p.dmg * 0.6, bounces: 0, splits: 0, pierce: 0, life: p.life * 0.6, type: 'missile', color: '#88ddff', size: 3, target: null, trail: [], hit: [], bounceUsed: 0 }, 'life');
+              }
+              addParticle(p.x, p.y, '#66ccff', 8, 80, 0.4, 4);
+            } else { p._remove = true; }
+          } else if (p.type === 'knife') {
+            p.hit = p.hit || [];
+            if (p.hit.includes(e)) continue;
+            p.hit.push(e);
+            dealDmg(e, p.dmg, p);
+            // 物理2件：飞刀弹射
+            if (p.bounces > 0 && p.bounceUsed < p.bounces) {
+              p.bounceUsed++;
+              p.target = null; p.hit.length = 0; sfxBounce();
+              addParticle(p.x, p.y, '#cccccc', 5, 60, 0.3, 3);
+            } else { p._remove = true; }
+          } else {
+            // lspear 等穿透弹：同一敌人每发只命中一次
+            p.hit = p.hit || [];
+            if (p.hit.includes(e)) continue;
+            p.hit.push(e);
+            dealDmg(e, p.dmg, p);
+            if (p._remove) break;
+          }
         }
       }
     }
