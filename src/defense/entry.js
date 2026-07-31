@@ -8,13 +8,12 @@ import { renderDefense } from './render.js';
 import { openRollPanel, closeRollPanel, reroll, lockRoll, updateRollButtons } from './rollpanel.js';
 import { initAudio } from '../audio.js';
 
-let started = false;
-
 export function startDefense() {
-  if (started) return;
-  started = true;
   initAudio();
   initDefense();
+
+  // 隐藏标题页（与 startGame 一致）
+  document.getElementById('title-screen').style.display = 'none';
 
   // 注册 gameLoop 钩子（game.js 在 gameState==='defense' 时调用）
   window.__updateDefense = (dt) => updateDefense(dt);
@@ -32,12 +31,13 @@ export function startDefense() {
   // 刷新防御模式武器栏（选卡后同步）
   window.__refreshDefenseBars = () => { updateWeaponsBar(); };
 
-  // 英雄选择界面
+  // 英雄选择界面（每次进入都重建卡片，避免残留状态）
   const sel = document.getElementById('hero-select');
   if (sel) {
     sel.classList.add('active');
     const list = document.getElementById('hero-cards');
-    if (list && list.children.length === 0) {
+    if (list) {
+      list.innerHTML = '';
       for (let h of HEROES) {
         const card = document.createElement('div');
         card.className = 'hero-card';
@@ -62,10 +62,10 @@ function heroPassiveName(h) {
 }
 
 export function exitDefense() {
-  if (!started) return;
-  started = false;
   disposeDefense();
   window.__updateDefense = null;
   window.__renderDefense = null;
+  // 恢复标题页
+  document.getElementById('title-screen').style.display = 'flex';
   gameState.value = 'title';
 }

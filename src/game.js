@@ -326,6 +326,17 @@ export function restartGame() {
   document.getElementById('game-over').classList.remove('active');
   document.getElementById('upgrade-overlay').classList.remove('active');
   document.getElementById('title-screen').style.display = 'none';
+  // 清理防守模式残留面板（防串模式）
+  const heroSel = document.getElementById('hero-select');
+  if (heroSel) heroSel.classList.remove('active');
+  const defHud = document.getElementById('defense-hud');
+  if (defHud) defHud.classList.remove('active');
+  const rollOv = document.getElementById('roll-overlay');
+  if (rollOv) rollOv.classList.remove('active');
+  const brkOv = document.getElementById('breakthrough-overlay');
+  if (brkOv) brkOv.classList.remove('active');
+  const rollBtn = document.getElementById('btn-roll-open');
+  if (rollBtn) rollBtn.style.display = 'none';
   updateWeaponsBar(); updateHUD(); updateSynergyBar();
   gameState.value = 'playing'; lastTime = 0; canvas.focus();
 }
@@ -340,6 +351,17 @@ export function startGame() {
   document.getElementById('title-screen').style.display = 'none';
   document.getElementById('game-over').classList.remove('active');
   document.getElementById('upgrade-overlay').classList.remove('active');
+  // 清理防守模式残留面板（防串模式）
+  const heroSel = document.getElementById('hero-select');
+  if (heroSel) heroSel.classList.remove('active');
+  const defHud = document.getElementById('defense-hud');
+  if (defHud) defHud.classList.remove('active');
+  const rollOv = document.getElementById('roll-overlay');
+  if (rollOv) rollOv.classList.remove('active');
+  const brkOv = document.getElementById('breakthrough-overlay');
+  if (brkOv) brkOv.classList.remove('active');
+  const rollBtn = document.getElementById('btn-roll-open');
+  if (rollBtn) rollBtn.style.display = 'none';
   updateWeaponsBar(); updateHUD(); updateSynergyBar();
   gameState.value = 'playing'; canvas.focus(); lastTime = 0;
 }
