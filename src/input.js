@@ -57,6 +57,8 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
       return;
     }
     if (gs !== 'playing' && gs !== 'defense') return;
+    // 点击到覆盖层（升级/Roll/突破面板）时不启动摇杆，让 click 事件正常派发
+    if (e.target && e.target.closest && e.target.closest('.upgrade-card, .roll-card, .break-card, .hero-card, #upgrade-overlay, #roll-overlay, #breakthrough-overlay, #hero-select')) return;
     e.preventDefault();
     for (let tch of e.changedTouches) {
       if (touchId !== null) break;
@@ -108,6 +110,8 @@ export function setupInput(canvas, getGameState, setPostUpgrade) {
     if (gs === 'title') { window.__startGame?.(); return; }
     if (gs === 'postupgrade') { setPostUpgrade(); return; }
     if (gs !== 'playing' && gs !== 'defense') return;
+    // 覆盖层点击不启动摇杆（升级/Roll/突破/选英雄面板）
+    if (e.target && e.target.closest && e.target.closest('.upgrade-card, .roll-card, .break-card, .hero-card, #upgrade-overlay, #roll-overlay, #breakthrough-overlay, #hero-select')) return;
     if (e.button === 0 && e.clientX < window.innerWidth / 2) {
       mouseDown = true;
       joystick.active = true;
