@@ -292,14 +292,10 @@ export function updateDefense(dt) {
   }
   player.angle = player.facingAngle;
 
-  // 相机：以玩家为中心（与生存模式一致），但 clamp 保证水晶不丢出视野
-  let tx = player.x - W.value / 2;
-  let ty = player.y - H.value / 2;
+  // 相机：以玩家为中心（与生存模式一致）；水晶出视野时才钳制相机
   const M = 150; // 水晶至少保留在视野边缘 150px 内
-  if (crystal.x < tx + M) tx = crystal.x - M;
-  if (crystal.x > tx + W.value - M) tx = crystal.x - (W.value - M);
-  if (crystal.y < ty + M) ty = crystal.y - M;
-  if (crystal.y > ty + H.value - M) ty = crystal.y - (H.value - M);
+  let tx = clamp(player.x - W.value / 2, crystal.x - (W.value - M), crystal.x - M);
+  let ty = clamp(player.y - H.value / 2, crystal.y - (H.value - M), crystal.y - M);
   camera.x = lerp(camera.x, tx, 8 * dt);
   camera.y = lerp(camera.y, ty, 8 * dt);
 
