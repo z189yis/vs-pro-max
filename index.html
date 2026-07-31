@@ -70,6 +70,11 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 #crystal-bar-wrap { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 320px; height: 18px; background: rgba(0,0,0,0.6); border-radius: 9px; border: 1px solid rgba(120,200,255,0.3); overflow: hidden; z-index: 11; pointer-events: none; }
 #crystal-bar-fill { height: 100%; background: linear-gradient(90deg, #3388dd, #66ccff); border-radius: 9px; transition: width 0.2s; }
 #crystal-bar-label { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 11px; font-weight: bold; text-shadow: 0 0 4px rgba(0,0,0,0.9); z-index: 12; pointer-events: none; white-space: nowrap; }
+#crystal-actions { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 11; pointer-events: auto; }
+.crystal-btn { padding: 4px 12px; font-size: 12px; background: rgba(20,30,60,0.85); color: #ffcc44; border: 1px solid rgba(255,204,68,0.4); border-radius: 14px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+.crystal-btn:hover { background: rgba(40,60,100,0.9); border-color: #ffcc44; box-shadow: 0 0 10px rgba(255,200,50,0.3); }
+.crystal-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.crystal-btn .cost { color: #ff8844; font-weight: bold; }
 #def-stats { position: absolute; top: 34px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; z-index: 10; pointer-events: none; }
 .def-item { color: #e0d8c0; font-size: 13px; text-shadow: 0 0 8px rgba(0,0,0,0.8); background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
 .def-item span { color: #ffcc44; font-weight: bold; }
@@ -100,6 +105,10 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 <div id="defense-hud">
   <div id="crystal-bar-wrap"><div id="crystal-bar-fill" style="width:100%"></div></div>
   <div id="crystal-bar-label">💎 <span id="crystal-hp">500</span> / <span id="crystal-max">500</span></div>
+  <div id="crystal-actions">
+    <button class="crystal-btn" id="btn-crystal-repair" onclick="window.__repairCrystal?.()">🔧 修理 <span class="cost">🪙50</span></button>
+    <button class="crystal-btn" id="btn-crystal-upgrade" onclick="window.__upgradeCrystal?.()">⬆ 升级 <span class="cost">🪵10</span></button>
+  </div>
   <div id="def-stats">
     <div class="def-item">🕐 <span id="def-time">00:00</span></div>
     <div class="def-item">🌊 <span id="def-wave">0/20</span></div>

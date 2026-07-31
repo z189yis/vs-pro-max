@@ -3,7 +3,7 @@
 
 import { gameState } from '../game.js';
 import { HEROES } from './heroes.js';
-import { initDefense, chooseHero, updateDefense, disposeDefense, restartDefense } from './update.js';
+import { initDefense, chooseHero, updateDefense, disposeDefense, restartDefense, doRepairCrystal, doUpgradeCrystal } from './update.js';
 import { renderDefense } from './render.js';
 import { initAudio } from '../audio.js';
 
@@ -20,6 +20,9 @@ export function startDefense() {
   window.__renderDefense = () => renderDefense();
   // 重开（结算界面点击）
   window.__restartDefense = () => { restartDefense(); };
+  // 水晶修理/升级
+  window.__repairCrystal = () => { doRepairCrystal(); };
+  window.__upgradeCrystal = () => { doUpgradeCrystal(); };
 
   // 英雄选择界面
   const sel = document.getElementById('hero-select');

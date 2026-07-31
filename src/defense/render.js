@@ -1,7 +1,8 @@
 // ===== 水晶防守模式 · 渲染 =====
 // 复用 game.js 的共享绘制函数，另绘制水晶与波次进度
 
-import { W, H, sx, sy } from '../utils.js';
+import { W, H, sx, sy, onScreen } from '../utils.js';
+import { xpGems } from '../utils.js';
 import { ctx, shakeX, shakeY, gameTime,
   drawGround, drawXPGems, drawEnemies, drawProjectiles, drawTidalWaves, drawLightningEffects,
   drawFireExplosions, drawConeEffects, drawReactionEffects, drawBlizzardZones, drawFrostNovaEffects,
@@ -10,6 +11,39 @@ import { joystick } from '../input.js';
 import { crystal } from './crystal.js';
 import { waveState, TOTAL_WAVES } from './wave.js';
 import { defState } from './state.js';
+
+// 金币/木材拾取物绘制（复用 xpGem 池，跳过硬刷的 XP 分支）
+export function drawCurrencyGems() {
+  for (let gem of xpGems) {
+    if (!gem.active || !gem._isGold && !gem._isWood) continue;
+    if (!onScreen(gem.x, gem.y, 20)) continue;
+    const gx = sx(gem.x) + shakeX, gy = sy(gem.y) + shakeY + Math.sin(gameTime.value * 3 + gem.bobOff) * 3;
+    const pulse = 1 + Math.sin(gameTime.value * 5 + gem.bobOff) * 0.2;
+    ctx.save();
+    if (gem._isGold) {
+      const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 9 * pulse);
+      glow.addColorStop(0, 'rgba(255,204,68,0.8)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(gx, gy, 9 * pulse, 0, Math.PI * 2); ctx.fill();
+      // 金币：圆形 + 内刻
+      ctx.fillStyle = '#ffcc44'; ctx.strokeStyle = '#ffe9a0'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(gx, gy, 5 * pulse, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#8a6a00';
+      ctx.beginPath(); ctx.arc(gx, gy, 2 * pulse, 0, Math.PI * 2); ctx.fill();
+    } else if (gem._isWood) {
+      const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 9 * pulse);
+      glow.addColorStop(0, 'rgba(255,136,68,0.8)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(gx, gy, 9 * pulse, 0, Math.PI * 2); ctx.fill();
+      // 木材：短棒形
+      ctx.fillStyle = '#ff8844'; ctx.strokeStyle = '#ffbb88'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(gx, gy, 5 * pulse, 3.5 * pulse, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
 
 export function drawCrystal() {
   if (defState.value === 'hero_select') return;
@@ -117,6 +151,7 @@ export function renderDefense() {
   ctx.clearRect(0, 0, W.value, H.value);
   drawGround();
   drawCrystal();
+  drawCurrencyGems();
   drawXPGems();
   drawEnemies();
   drawProjectiles();

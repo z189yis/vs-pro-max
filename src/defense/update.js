@@ -7,9 +7,9 @@ import { rng, lerp, clamp, dist, distToSegment, addToPool, addParticle, onScreen
   enemies, projectiles, xpGems, particles, dmgNumbers, lightningEffects, fireExplosions, coneEffects, reactionEffects, blizzardZones, frostNovaEffects, disintegrateBeams, tidalWaves, garlicAuraAlpha } from '../utils.js';
 import { spawnEnemy, spawnBoss, enemyGrid, handleEnemyDeath, dealDmg, gameRefs } from '../entities.js';
 import { systemEnemies, systemProjectiles, systemWeapons, fireAttackSys, setSystemsCfg, setSystemsRefs } from '../systems.js';
-import { crystal, resetCrystal, crystalTakeDamage } from './crystal.js';
+import { crystal, resetCrystal, crystalTakeDamage, updateCrystalShield, upgradeCrystal, repairCrystal, getNextCrystalUpgrade, CRYSTAL_REPAIR_COST } from './crystal.js';
 import { waveState, resetWaves, TOTAL_WAVES, FIGHT_DURATION, BREAK_DURATION, updateWaves, isBossWave, enemyHpMult, enemySpeedMult } from './wave.js';
-import { defState, resetDefState, addGold, addWood } from './state.js';
+import { defState, resetDefState, addGold, addWood, spendGold, spendWood } from './state.js';
 import { HEROES, applyHero, triggerHeroPassive, setHeroDmgFn } from './heroes.js';
 import { sfxLevelUp, sfxPickup, sfxPlayerHit, sfxShoot, sfxGameOver } from '../audio.js';
 import { keys, joystick, resetInput } from '../input.js';
@@ -99,18 +99,83 @@ export function initDefense() {
     if (e.type === 'boss') {
       waveState.bossKilled = true;
       waveState.bossAlive = false;
-      addWood(5);
-      addGold(40);
+      // Boss 大掉宝：木材 + 金币（拾取时入账）
+      dropGold(40, e.x, e.y);
+      dropWood(5, e.x, e.y);
       const banner = document.getElementById('defense-banner');
       if (banner) { banner.textContent = '💀 Boss 已被击败！'; banner.classList.add('active'); setTimeout(() => banner.classList.remove('active'), 2500); }
     } else {
-      if (Math.random() < 0.2) addGold(1);
+      if (Math.random() < 0.2) dropGold(1, e.x, e.y);
     }
   };
 
   // 初始：第一波前的 break 阶段，玩家可以提前行动
   updateHUD();
   showWaveBanner();
+}
+
+// 掉落金币拾取物（复用 xpGem 池）
+export function dropGold(n, x, y) {
+  addToPool(xpGems, 300, {
+    x: x + rng(-10, 10), y: y + rng(-10, 10),
+    value: 0, life: 60, bobOff: Math.random() * Math.PI * 2,
+    _isGold: true, _isWood: false
+  }, 'life');
+}
+
+// 掉落木材拾取物（复用 xpGem 池）
+export function dropWood(n, x, y) {
+  addToPool(xpGems, 300, {
+    x: x + rng(-10, 10), y: y + rng(-10, 10),
+    value: 0, life: 60, bobOff: Math.random() * Math.PI * 2,
+    _isGold: false, _isWood: true
+  }, 'life');
+}
+
+// 修理水晶（金币消耗）
+export function doRepairCrystal() {
+  if (defState.gold < CRYSTAL_REPAIR_COST) return false;
+  if (crystal.hp >= crystal.maxHp) return false;
+  spendGold(CRYSTAL_REPAIR_COST);
+  repairCrystal();
+  addParticle(crystal.x, crystal.y, '#88ddff', 15, 100, 0.5, 4);
+  updateCrystalButtons();
+  return true;
+}
+
+// 升级水晶（木材消耗）
+export function doUpgradeCrystal() {
+  const u = getNextCrystalUpgrade();
+  if (!u) return false;
+  if (defState.wood < u.cost) return false;
+  spendWood(u.cost);
+  upgradeCrystal();
+  addParticle(crystal.x, crystal.y, '#aaddff', 20, 120, 0.6, 5);
+  const banner = document.getElementById('defense-banner');
+  if (banner) { banner.textContent = `💎 水晶升级 Lv${crystal.level}：${u.desc}`; banner.classList.add('active'); setTimeout(() => banner.classList.remove('active'), 3500); }
+  updateCrystalButtons();
+  return true;
+}
+
+// 刷新修理/升级按钮可用状态
+export function updateCrystalButtons() {
+  const repairBtn = document.getElementById('btn-crystal-repair');
+  if (repairBtn) {
+    repairBtn.disabled = defState.gold < CRYSTAL_REPAIR_COST || crystal.hp >= crystal.maxHp;
+  }
+  const upBtn = document.getElementById('btn-crystal-upgrade');
+  if (upBtn) {
+    const u = getNextCrystalUpgrade();
+    if (u) {
+      upBtn.disabled = defState.wood < u.cost;
+      upBtn.innerHTML = `⬆ 升级 <span class="cost">🪵${u.cost}</span>`;
+      upBtn.title = u.desc;
+    } else {
+      upBtn.disabled = true;
+      upBtn.innerHTML = '⬆ 已满级';
+      upBtn.title = '';
+    }
+  }
 }
 
 // 选英雄
@@ -177,8 +242,9 @@ export function updateDefense(dt) {
     // 死亡期间仍推进波次
   }
 
-  // 水晶回血
+  // 水晶回血 + 护盾充能
   if (crystal.regen > 0) crystal.hp = Math.min(crystal.maxHp, crystal.hp + crystal.regen * dt);
+  updateCrystalShield(dt);
 
   // 波次推进
   const events = updateWaves(dt);
@@ -201,7 +267,11 @@ export function updateDefense(dt) {
   for (let e of enemies) {
     if (!e.active || e._dead) continue;
     if (dist(e, crystal) < e.size + 30) {
-      crystalTakeDamage(e.dmg * dt);
+      const actual = crystalTakeDamage(e.dmg * dt);
+      // 伤害反射（升级 4）
+      if (actual > 0 && crystal.reflectPct > 0) {
+        dealDmg(e, actual * crystal.reflectPct, null, '#66ccff', 'arcane');
+      }
       e.hitFlash = 0.1;
     }
   }
@@ -243,9 +313,21 @@ export function updateDefense(dt) {
     if (d < player.magnetRange) { const spd = 400 + (player.magnetRange - d) * 2, a = Math.atan2(player.y - gem.y, player.x - gem.x); gem.x += Math.cos(a) * spd * dt; gem.y += Math.sin(a) * spd * dt; }
     if (d < 18) {
       gem._picked = true;
-      player.xp += gem.value;
-      sfxPickup();
-      addParticle(gem.x, gem.y, '#44ff88', 3, 40, 0.2, 2);
+      if (gem._isGold) {
+        // 金币拾取入账
+        addGold(1);
+        addParticle(gem.x, gem.y, '#ffcc44', 5, 60, 0.3, 3);
+        sfxPickup();
+      } else if (gem._isWood) {
+        // 木材拾取入账
+        addWood(1);
+        addParticle(gem.x, gem.y, '#ff8844', 6, 60, 0.3, 3);
+        sfxPickup();
+      } else {
+        player.xp += gem.value;
+        sfxPickup();
+        addParticle(gem.x, gem.y, '#44ff88', 3, 40, 0.2, 2);
+      }
     }
   }
   compactPool(xpGems, g => g._picked || g.life <= 0);
@@ -372,6 +454,7 @@ export function updateHUD() {
     if (waveState.phase === 'fight') pbar.style.width = Math.min(100, (waveState.fightTimer / FIGHT_DURATION) * 100) + '%';
     else pbar.style.width = Math.min(100, (waveState.breakTimer / BREAK_DURATION) * 100) + '%';
   }
+  updateCrystalButtons();
 }
 
 export function updateWeaponsBar() {
