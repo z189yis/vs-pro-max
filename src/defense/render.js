@@ -1,7 +1,7 @@
 // ===== 水晶防守模式 · 渲染 =====
 // 复用 game.js 的共享绘制函数，另绘制水晶与波次进度
 
-import { W, H, sx, sy, onScreen } from '../utils.js';
+import { W, H, sx, sy, onScreen, camera, clamp } from '../utils.js';
 import { xpGems } from '../utils.js';
 import { ctx, shakeX, shakeY, gameTime,
   drawGround, drawXPGems, drawEnemies, drawProjectiles, drawTidalWaves, drawLightningEffects,
@@ -136,6 +136,40 @@ export function drawCrystal() {
   if (crystal.flash > 0) crystal.flash -= 0.016;
 }
 
+// 水晶在视野外时：边缘方向指示箭头
+export function drawCrystalArrow() {
+  if (defState.value !== 'playing') return;
+  const cx = sx(crystal.x), cy = sy(crystal.y);
+  const margin = 40;
+  const outX = cx < -margin || cx > W.value + margin;
+  const outY = cy < -margin || cy > H.value + margin;
+  if (!outX && !outY) return;
+  // 箭头位置：钳制到屏幕边缘内侧
+  const ax = clamp(cx, 50, W.value - 50);
+  const ay = clamp(cy, 50, H.value - 50);
+  const angle = Math.atan2(crystal.y - (ax + camera.x), crystal.x - (ay + camera.y));
+  const pulse = 1 + Math.sin(gameTime.value * 6) * 0.15;
+  ctx.save();
+  ctx.translate(ax, ay);
+  ctx.rotate(angle);
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = '#66ccff';
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(16 * pulse, 0);
+  ctx.lineTo(-8, -9);
+  ctx.lineTo(-8, 9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = 'bold 11px "Segoe UI",sans-serif';
+  ctx.fillStyle = '#66ccff';
+  ctx.textAlign = 'center';
+  ctx.fillText('💎', 26, 4);
+  ctx.restore();
+}
+
 export function drawWaveBar() {
   if (defState.value !== 'playing') return;
   // 波次状态徽标（画布内：底部中央上方）
@@ -178,6 +212,7 @@ export function renderDefense() {
   ctx.clearRect(0, 0, W.value, H.value);
   drawGround();
   drawCrystal();
+  drawCrystalArrow();
   drawCurrencyGems();
   drawXPGems();
   drawEnemies();

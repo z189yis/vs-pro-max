@@ -37,8 +37,8 @@ export function initDefense() {
 
   // 复用 entities 所需的 gameRefs（enemies/projectiles 等池 + 回调）
   initGameRefs();
-  // 敌人生成中心 = 水晶（防守模式特有）
-  gameRefs.spawnCenter = () => crystal;
+  // 敌人生成中心 = 玩家（怪在玩家视野边缘出现，向水晶推进；保证战斗可见可打）
+  gameRefs.spawnCenter = () => player;
   // 隐藏 Roll 按钮（选英雄后显示）
   document.getElementById('btn-roll-open').style.display = 'none';
 
@@ -292,12 +292,14 @@ export function updateDefense(dt) {
   }
   player.angle = player.facingAngle;
 
-  // 相机：以玩家为中心（与生存模式一致）；水晶出视野时才钳制相机
-  const M = 150; // 水晶至少保留在视野边缘 150px 内
-  let tx = clamp(player.x - W.value / 2, crystal.x - (W.value - M), crystal.x - M);
-  let ty = clamp(player.y - H.value / 2, crystal.y - (H.value - M), crystal.y - M);
-  camera.x = lerp(camera.x, tx, 8 * dt);
-  camera.y = lerp(camera.y, ty, 8 * dt);
+  // 战斗区域边界：以水晶为中心 ±1200px（玩家被限制在区域内，相机永远不丢玩家）
+  const WORLD = 1200;
+  player.x = clamp(player.x, -WORLD, WORLD);
+  player.y = clamp(player.y, -WORLD, WORLD);
+
+  // 相机：完全跟随玩家（玩家已在世界内，不会出视野）
+  camera.x = lerp(camera.x, player.x - W.value / 2, 8 * dt);
+  camera.y = lerp(camera.y, player.y - H.value / 2, 8 * dt);
 
   // 玩家死亡复活
   if (!player.alive) {
@@ -452,16 +454,16 @@ function spawnWaveBatch() {
     const r = Math.random();
     if (waveState.number > 3 && r < 0.3) type = 'fast';
     if (waveState.number > 7 && r < 0.15) type = 'tank';
-    // 生成在屏幕边缘内侧（视野 250-450），保证可见且能到达水晶
-    spawnEnemy(type, rng(250, 450), { hpMult, spdMult });
+    // 生成在玩家视野边缘内侧（相机跟随玩家，保证怪可见且能打到）
+    spawnEnemy(type, rng(300, 500), { hpMult, spdMult });
   }
 }
 
 function spawnBossWave() {
   // Boss 波：Boss 按波次缩放 + 小怪（按波次递增，为 Boss 让出压力）
-  spawnBoss(rng(500, 650), enemyHpMult());
+  spawnBoss(rng(300, 500), enemyHpMult());
   const escortCount = 2 + Math.floor(waveState.number / 5);
-  for (let i = 0; i < escortCount; i++) spawnEnemy('fast', rng(250, 450), { hpMult: enemyHpMult(), spdMult: enemySpeedMult() });
+  for (let i = 0; i < escortCount; i++) spawnEnemy('fast', rng(300, 500), { hpMult: enemyHpMult(), spdMult: enemySpeedMult() });
   // Boss 波公告
   const banner = document.getElementById('defense-banner');
   if (banner) { banner.textContent = '⚠ BOSS 波来袭 ⚠'; banner.classList.add('active'); setTimeout(() => banner.classList.remove('active'), 3000); }
