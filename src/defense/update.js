@@ -11,8 +11,9 @@ import { crystal, resetCrystal, crystalTakeDamage, updateCrystalShield, upgradeC
 import { waveState, resetWaves, TOTAL_WAVES, FIGHT_DURATION, BREAK_DURATION, updateWaves, isBossWave, enemyHpMult, enemySpeedMult } from './wave.js';
 import { defState, resetDefState, addGold, addWood, spendGold, spendWood } from './state.js';
 import { setPassivePlayerRef } from './passives.js';
-import { rollState, resetRollState } from './roll.js';
+import { rollState, resetRollState, onWaveStart } from './roll.js';
 import { openRollPanel, closeRollPanel, reroll, lockRoll, updateRollButtons } from './rollpanel.js';
+import { castSkill, tickSkills, SKILLS as SKILL_DEFS } from './skills.js';
 import { checkBreakthrough, breakState } from './breakthrough.js';
 import { openBreakthroughPanel, closeBreakthroughPanel } from './breakpanel.js';
 import { HEROES, applyHero, triggerHeroPassive, setHeroDmgFn } from './heroes.js';
@@ -57,8 +58,9 @@ export function initDefense() {
     synergyKnifeBounce: 0, synergyAxeExtra: 0, synergyAttackPierce: false, synergyAttackBounce: 0,
     synergyMissileBounce: 0, synergyBeamWidth: 1, synergyArcaneReset: 0,
     synergyGarlicRadius: 1, synergyGarlicSlow: 0, synergyNatureOrb: false,
-    attackDmgMult: 1, speedMult: 1,
-    defPassives: {}, berserkTimer: 0, berserkCount: 0
+    attackDmgMult: 1, speedMult: 1, speedMultBase: 1,
+    defPassives: {}, berserkTimer: 0, berserkCount: 0, berserkAttackMult: 0, berserkSpeedMult: 0, skillShield: 0, skillShieldMult: 0,
+    skills: []
   });
   player.weapons = [];
 
@@ -76,6 +78,12 @@ export function initDefense() {
       triggerHeroPassive(player, 'tick', e);
       if (player.defPassives && player.defPassives.thorns) {
         dealDmg(e, 6 * player.dmgMult * player.defPassives.thorns, null, '#aadd88', 'nature');
+      }
+      // 主动技能护盾减伤（skillShieldMult）
+      if (player.skillShield > 0 && player.skillShieldMult > 0) {
+        const reduced = dmg * (1 - player.skillShieldMult);
+        player.hp += dmg - reduced; // 返还减免部分
+        addParticle(player.x, player.y, '#66ccff', 5, 60, 0.3, 3);
       }
       // 防守模式：玩家死亡不掉游戏，转复活计时
       if (player.hp <= 0) {
@@ -243,6 +251,7 @@ export function chooseHero(heroId) {
   startWave(1);
   updateHUD();
   updateWeaponsBar();
+  updateSkillBar();
 }
 
 function startWave(n) {
@@ -273,6 +282,9 @@ export function updateDefense(dt) {
   if (firstFrame) { firstFrame = false; }
   if (defState.value !== 'playing') return;
   dt = Math.min(dt, 0.1);
+  if (player.berserkTimer > 0) { // 主动狂暴：移速加成
+    player.speedMult = (player.speedMultBase || 1) * (1 + (player.berserkSpeedMult || 0));
+  }
 
   // R 键开关 Roll 面板（仅 break 窗口；fight 期间禁止打开）
   if (keys['r'] && waveState.phase === 'break' && !rollState.open && !breakState.pending) {
@@ -282,6 +294,12 @@ export function updateDefense(dt) {
     keys['escape'] = false;
     closeRollPanel();
   }
+  // 主动技能施放（1-4 键）
+  if (keys['1'] && !rollState.open && !breakState.pending) { keys['1'] = false; castSkillAt('1'); }
+  if (keys['2'] && !rollState.open && !breakState.pending) { keys['2'] = false; castSkillAt('2'); }
+  if (keys['3'] && !rollState.open && !breakState.pending) { keys['3'] = false; castSkillAt('3'); }
+  if (keys['4'] && !rollState.open && !breakState.pending) { keys['4'] = false; castSkillAt('4'); }
+  tickSkills(dt); // 技能冷却/护盾/狂暴计时
   if (rollState.open) return; // 面板打开时暂停游戏
   if (breakState.pending) return; // 突破面板打开时暂停游戏
 
@@ -310,7 +328,6 @@ export function updateDefense(dt) {
   camera.x = lerp(camera.x, player.x - W.value / 2, 8 * dt);
   camera.y = lerp(camera.y, player.y - H.value / 2, 8 * dt);
 
-  // 玩家死亡复活
   if (!player.alive) {
     defState.playerDeathTimer -= dt;
     if (defState.playerDeathTimer <= 0) {
@@ -383,10 +400,12 @@ export function updateDefense(dt) {
     showEndScreen('defeat');
   }
 
-  // 普攻
+  // 普攻（含主动狂暴攻速加成）
   player.attackTimer -= dt;
   if (player.attackTimer <= 0 && player.alive) {
-    player.attackTimer = ATTACK.cd * player.attackCdMult;
+    let cd = ATTACK.cd * player.attackCdMult;
+    if (player.berserkTimer > 0 && player.berserkAttackMult > 0) cd /= player.berserkAttackMult;
+    player.attackTimer = cd;
     const nearest = enemyGrid.queryNearest(player.x, player.y, ATTACK.range);
     if (nearest) { fireAttackSys(); sfxShoot(); }
   }
@@ -462,6 +481,22 @@ export function updateDefense(dt) {
   for (let dn of dmgNumbers) { if (!dn.active) continue; dn.life -= dt; dn.y += dn.vy * dt; dn.vy *= 0.98; } compactPool(dmgNumbers, dn => dn.life <= 0);
 
   updateHUD();
+}
+
+// 按技能槽位施放（1-4 对应第 1-4 个已学技能）
+function castSkillAt(slot) {
+  const p = player;
+  if (!p.skills || !p.skills.length) return;
+  const idx = parseInt(slot) - 1;
+  if (idx >= p.skills.length) return;
+  const s = p.skills[idx];
+  const ok = castSkill(s.id);
+  if (ok) updateSkillBar();
+}
+
+// 移动端技能按钮：window.__castSkillSlot(i) → 施放第 i 个技能
+export function setupSkillCast() {
+  window.__castSkillSlot = (i) => castSkillAt(String(i));
 }
 
 function spawnWaveBatch() {
@@ -577,6 +612,32 @@ export function updateWeaponsBar() {
     el.innerHTML = `${d.icon}`;
     el.title = `${d.name}`;
     b.appendChild(el);
+  }
+}
+
+// 技能栏：显示已学主动技能 + 冷却
+export function updateSkillBar() {
+  const bar = document.getElementById('skill-bar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  const skills = player.skills || [];
+  for (let i = 0; i < skills.length && i < 4; i++) {
+    const s = skills[i];
+    const def = SKILL_DEFS[s.id];
+    if (!def) continue;
+    const el = document.createElement('div');
+    el.className = 'skill-slot';
+    el.title = `${def.name} Lv${s.level} - ${def.desc}`;
+    let cdHtml = '';
+    if (s.cdTimer > 0) {
+      const pct = Math.max(0, s.cdTimer / def.cd);
+      cdHtml = `<div class="skill-cd-overlay">${Math.ceil(s.cdTimer)}</div>`;
+      el.style.opacity = 0.5;
+    } else {
+      el.style.opacity = 1;
+    }
+    el.innerHTML = `<div class="skill-key">${i + 1}</div><div class="skill-lv">${s.level}</div>${def.icon}${cdHtml}`;
+    bar.appendChild(el);
   }
 }
 

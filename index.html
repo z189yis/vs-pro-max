@@ -108,6 +108,12 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 .def-item { color: #e0d8c0; font-size: 13px; text-shadow: 0 0 8px rgba(0,0,0,0.8); background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; }
 .def-item span { color: #ffcc44; font-weight: bold; }
 #def-weapons-bar { position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 10; pointer-events: none; }
+#skill-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10; pointer-events: none; }
+.skill-slot { width: 46px; height: 46px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.25); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; position: relative; }
+.skill-slot .skill-key { position: absolute; top: -8px; left: -6px; background: #ffcc44; color: #000; font-size: 9px; font-weight: bold; width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.skill-slot .skill-lv { position: absolute; bottom: -6px; right: -6px; background: #4488ff; color: #fff; font-size: 9px; font-weight: bold; width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.skill-slot .skill-cd-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: bold; }
+@media (max-width: 768px) { .skill-slot { width: 40px; height: 40px; font-size: 18px; } #skill-bar { bottom: 90px; gap: 6px; } }
 #defense-banner { position: absolute; top: 64px; left: 50%; transform: translateX(-50%) translateY(-80px); padding: 10px 28px; background: rgba(20,20,40,0.85); border: 1px solid rgba(255,255,255,0.2); border-radius: 30px; color: #ffcc44; font-size: 18px; font-weight: bold; text-shadow: 0 0 12px rgba(255,200,50,0.6); pointer-events: none; z-index: 15; opacity: 0; transition: transform 0.5s ease, opacity 0.5s ease; }
 #defense-banner.active { transform: translateX(-50%) translateY(0); opacity: 1; }
 #defense-end { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 200; cursor: pointer; }
@@ -149,6 +155,7 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
   </div>
 </div>
 <div id="def-weapons-bar"></div>
+<div id="skill-bar"></div>
 <button id="btn-roll-open" onclick="window.__openRoll?.()">🎲 Roll 技能</button>
 <div id="roll-overlay">
   <div id="roll-title">🎲 技能构筑</div>

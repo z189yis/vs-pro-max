@@ -1,5 +1,6 @@
 // ===== 水晶防守模式 · Roll 技能池 =====
-// 木材消费：重抽 2 木材 / 锁定 1 木材（面板打开期间锁定后只能从中选 1 张）
+// 每波一次免费抽取机会：打开面板 → 若本波未抽过则免费 3 选 1，否则消耗木材
+// 关闭重开不刷新卡片（防白嫖重抽）；重抽 2 木材
 // [扩展] 3 件同名合成升级在后续迭代接入（skill.level 字段已预留）
 
 // 被动技能定义
@@ -18,19 +19,25 @@ export const DEF_PASSIVES = {
   resolve: { id: 'resolve', name: '坚定', icon: '🗿', desc: '最大生命 +50', rarity: 1 }
 };
 
-// 武器技能（复用现有 13 武器，作为 Roll 选项）
-// import 时由调用方注入（避免循环依赖）
-
 // Roll 面板配置
-export const ROLL_COST = 2;      // 重抽
-export const LOCK_COST = 1;      // 锁定
+export const ROLL_COST = 2;      // 重抽（木材）
+export const LOCK_COST = 1;      // 锁定（木材）
+export const FREE_ROLL_PER_WAVE = 1; // 每波免费抽取次数
 
 export const rollState = {
   open: false,
-  cards: [],        // [{ type: 'weapon'|'passive', id }]
-  locked: false
+  cards: [],            // [{ type: 'weapon'|'passive'|'skill', id }]
+  locked: false,
+  waveRolled: false,    // 本波是否已抽过（免费机会用完）
+  freeAvailable: true   // 本次打开是否免费（每波一次）
 };
 
 export function resetRollState() {
-  Object.assign(rollState, { open: false, cards: [], locked: false });
+  Object.assign(rollState, { open: false, cards: [], locked: false, waveRolled: false, freeAvailable: true });
+}
+
+// 新波开始时重置免费机会
+export function onWaveStart() {
+  rollState.waveRolled = false;
+  rollState.freeAvailable = true;
 }
