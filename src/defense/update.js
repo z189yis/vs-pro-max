@@ -10,6 +10,9 @@ import { systemEnemies, systemProjectiles, systemWeapons, fireAttackSys, setSyst
 import { crystal, resetCrystal, crystalTakeDamage, updateCrystalShield, upgradeCrystal, repairCrystal, getNextCrystalUpgrade, CRYSTAL_REPAIR_COST } from './crystal.js';
 import { waveState, resetWaves, TOTAL_WAVES, FIGHT_DURATION, BREAK_DURATION, updateWaves, isBossWave, enemyHpMult, enemySpeedMult } from './wave.js';
 import { defState, resetDefState, addGold, addWood, spendGold, spendWood } from './state.js';
+import { setPassivePlayerRef } from './passives.js';
+import { rollState, resetRollState } from './roll.js';
+import { openRollPanel, closeRollPanel, reroll, lockRoll, updateRollButtons } from './rollpanel.js';
 import { HEROES, applyHero, triggerHeroPassive, setHeroDmgFn } from './heroes.js';
 import { sfxLevelUp, sfxPickup, sfxPlayerHit, sfxShoot, sfxGameOver } from '../audio.js';
 import { keys, joystick, resetInput } from '../input.js';
@@ -23,8 +26,12 @@ export function initDefense() {
   resetDefState();
   resetCrystal();
   resetWaves();
+  resetRollState();
   defenseGameTime.value = 0;
   firstFrame = true;
+
+  // 被动引用注入
+  setPassivePlayerRef(() => player);
 
   // 复用 entities 所需的 gameRefs（enemies/projectiles 等池 + 回调）
   initGameRefs();
@@ -46,7 +53,8 @@ export function initDefense() {
     synergyKnifeBounce: 0, synergyAxeExtra: 0, synergyAttackPierce: false, synergyAttackBounce: 0,
     synergyMissileBounce: 0, synergyBeamWidth: 1, synergyArcaneReset: 0,
     synergyGarlicRadius: 1, synergyGarlicSlow: 0, synergyNatureOrb: false,
-    attackDmgMult: 1, speedMult: 1
+    attackDmgMult: 1, speedMult: 1,
+    defPassives: {}, berserkTimer: 0, berserkCount: 0
   });
   player.weapons = [];
 
@@ -60,8 +68,11 @@ export function initDefense() {
     getTargetPoint: () => ({ x: crystal.x, y: crystal.y }),
     onKill: null,
     onPlayerHit: (e, dmg) => {
-      // 英雄被动：荆棘反弹
+      // 荆棘反弹（英雄被动 + 被动技能叠加）
       triggerHeroPassive(player, 'tick', e);
+      if (player.defPassives && player.defPassives.thorns) {
+        dealDmg(e, 6 * player.dmgMult * player.defPassives.thorns, null, '#aadd88', 'nature');
+      }
       // 防守模式：玩家死亡不掉游戏，转复活计时
       if (player.hp <= 0) {
         player.alive = false;
@@ -81,10 +92,18 @@ export function initDefense() {
       }
     },
     crit: () => {
-      if (player.heroPassive === 'crit') {
-        return Math.random() < 0.2 ? 2 : 1;
-      }
-      return 1;
+      // 暴击：英雄被动 20% + 被动技能 15% 叠加
+      let c = 1;
+      if (player.heroPassive === 'crit') c = Math.random() < 0.2 ? 2 : c;
+      if (player.defPassives && player.defPassives.crit) c = Math.random() < 0.15 * player.defPassives.crit ? 2 : c;
+      return c;
+    },
+    extraShots: () => {
+      return (player.defPassives && player.defPassives.multishot) || 0;
+    },
+    onVoidCheck: () => {
+      const lv = (player.defPassives && player.defPassives.void) || 0;
+      return lv > 0 && Math.random() < 0.1 * lv;
     }
   });
   setSystemsRefs({ gameTime: defenseGameTime, weather: currentWeather, screenShake: null });
@@ -96,6 +115,19 @@ export function initDefense() {
   window.__onDefenseKill = (e) => {
     defState.totalKills++;
     triggerHeroPassive(player, 'onKill');
+    // 吸血被动：击杀回 2 HP
+    const ls = (player.defPassives && player.defPassives.lifesteal) || 0;
+    if (ls > 0) player.hp = Math.min(player.maxHp, player.hp + 2 * ls);
+    // 狂暴被动：每击杀 10 只怪，5 秒攻速 +50%
+    if (player.defPassives && player.defPassives.berserk) {
+      player.berserkCount = (player.berserkCount || 0) + 1;
+      if (player.berserkCount >= 10) {
+        player.berserkCount = 0;
+        player.berserkTimer = 5;
+        player.attackCdMult = 1 / 1.5; // 攻速 +50%
+        addParticle(player.x, player.y, '#ff6644', 10, 100, 0.4, 4);
+      }
+    }
     if (e.type === 'boss') {
       waveState.bossKilled = true;
       waveState.bossAlive = false;
@@ -187,6 +219,7 @@ export function chooseHero(heroId) {
   defState.value = 'playing';
   document.getElementById('hero-select').classList.remove('active');
   document.getElementById('defense-hud').classList.add('active');
+  document.getElementById('btn-roll-open').style.display = 'block';
   startWave(1);
   updateHUD();
   updateWeaponsBar();
@@ -210,6 +243,17 @@ export function updateDefense(dt) {
   if (defState.value !== 'playing') return;
   dt = Math.min(dt, 0.1);
   defenseGameTime.value += dt;
+
+  // R 键开关 Roll 面板（仅 break 窗口；fight 期间禁止打开）
+  if (keys['r'] && waveState.phase === 'break' && !rollState.open) {
+    keys['r'] = false;
+    openRollPanel();
+  } else if (keys['escape'] && rollState.open) {
+    keys['escape'] = false;
+    closeRollPanel();
+  }
+  if (rollState.open) return; // 面板打开时暂停游戏
+
   if (player.regenRate > 0) player.hp = Math.min(player.maxHp, player.hp + player.regenRate * dt);
   if (player.iframes > 0) player.iframes -= dt;
 
@@ -240,6 +284,14 @@ export function updateDefense(dt) {
       addParticle(player.x, player.y, '#44ff88', 15, 100, 0.5, 4);
     }
     // 死亡期间仍推进波次
+  }
+
+  // 狂暴计时衰减（结束后恢复普攻冷却倍率）
+  if (player.berserkTimer > 0) {
+    player.berserkTimer -= dt;
+    if (player.berserkTimer <= 0) {
+      player.attackCdMult = 1 / (1 + (player.attackSpeedStacks || 0) * 0.15);
+    }
   }
 
   // 水晶回血 + 护盾充能
@@ -488,6 +540,8 @@ export function disposeDefense() {
   document.getElementById('hero-select').classList.remove('active');
   document.getElementById('defense-end').classList.remove('active');
   document.getElementById('defense-banner').classList.remove('active');
+  document.getElementById('roll-overlay').classList.remove('active');
+  document.getElementById('btn-roll-open').style.display = 'none';
 }
 
 // 重开一局（保留已选英雄，回到选择界面）

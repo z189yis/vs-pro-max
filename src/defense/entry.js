@@ -3,8 +3,9 @@
 
 import { gameState } from '../game.js';
 import { HEROES } from './heroes.js';
-import { initDefense, chooseHero, updateDefense, disposeDefense, restartDefense, doRepairCrystal, doUpgradeCrystal } from './update.js';
+import { initDefense, chooseHero, updateDefense, disposeDefense, restartDefense, doRepairCrystal, doUpgradeCrystal, updateWeaponsBar } from './update.js';
 import { renderDefense } from './render.js';
+import { openRollPanel, closeRollPanel, reroll, lockRoll, updateRollButtons } from './rollpanel.js';
 import { initAudio } from '../audio.js';
 
 let started = false;
@@ -23,6 +24,13 @@ export function startDefense() {
   // 水晶修理/升级
   window.__repairCrystal = () => { doRepairCrystal(); };
   window.__upgradeCrystal = () => { doUpgradeCrystal(); };
+  // Roll 面板
+  window.__openRoll = () => { if (openRollPanel()) updateRollButtons(); };
+  window.__closeRoll = () => { closeRollPanel(); };
+  window.__rollReroll = () => { if (reroll()) updateRollButtons(); };
+  window.__rollLock = () => { if (lockRoll()) updateRollButtons(); };
+  // 刷新防御模式武器栏（选卡后同步）
+  window.__refreshDefenseBars = () => { updateWeaponsBar(); };
 
   // 英雄选择界面
   const sel = document.getElementById('hero-select');

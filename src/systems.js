@@ -16,7 +16,9 @@ let cfg = {
   onCrystalHit: null,     // 水晶受击钩子（defense）
   heroHitDmg: null,       // 玩家受击结算（defense: 死亡处理；survival: 保留原逻辑时不用）
   preFire: null,          // 武器发射前钩子（hero 被动 manaCascade）
-  crit: () => 1           // 普攻暴击倍率（hero 被动 crit）
+  crit: () => 1,          // 普攻暴击倍率（hero 被动 crit）
+  extraShots: () => 0,    // 普攻额外发射方向（defense 被动 multishot）
+  onVoidCheck: null       // 受击免疫判定（defense 被动 void）
 };
 
 export function setSystemsCfg(c) { Object.assign(cfg, c); }
@@ -61,6 +63,12 @@ function playerHitSystem(dt) {
   for (let e of enemies) {
     if (e._dead || !e.active) continue;
     if (dist(player, e) < 12 + e.size) {
+      // 虚空被动（defense）：10% 概率免疫该次伤害
+      if (cfg.onVoidCheck && cfg.onVoidCheck()) {
+        player.iframes = 0.4;
+        addParticle(player.x, player.y, '#9966ff', 6, 60, 0.3, 3);
+        continue;
+      }
       const dmg = e.dmg * player.dmgTakenMult;
       player.hp -= dmg; player.iframes = 0.4; screenShakeRef.value = Math.max(screenShakeRef.value, 5);
       sfxPlayerHit(); addParticle(player.x, player.y, '#ff4444', 6, 60, 0.3, 3);
@@ -260,12 +268,20 @@ export function fireAttackSys() {
   const dmg = (ATTACK.dmg + (player.attackDmgBonus || 0)) * player.dmgMult * (player.attackDmgMult || 1);
   const pierce = player.synergyAttackPierce ? Infinity : 0;
   const bounces = player.synergyAttackBounce || 0;
-  addToPool(projectiles, 400, {
-    x: player.x + Math.cos(a) * 20, y: player.y + Math.sin(a) * 20,
-    vx: Math.cos(a) * ATTACK.spd, vy: Math.sin(a) * ATTACK.spd,
-    spd: ATTACK.spd, angle: a, dmg, pierce, bounces, life: 1.2,
-    type: 'attack', element: ATTACK.element, color: ATTACK.color, size: ATTACK.size, trail: [], hit: [], bounceUsed: 0
-  }, 'life');
+  // 多重射击（防御模式被动）：额外发射方向
+  const extraShots = cfg.extraShots ? cfg.extraShots() : 0;
+  const angles = [a];
+  for (let i = 1; i <= extraShots; i++) {
+    angles.push(a + (i % 2 === 1 ? 1 : -1) * Math.ceil(i / 2) * 0.22);
+  }
+  for (let angle of angles) {
+    addToPool(projectiles, 400, {
+      x: player.x + Math.cos(angle) * 20, y: player.y + Math.sin(angle) * 20,
+      vx: Math.cos(angle) * ATTACK.spd, vy: Math.sin(angle) * ATTACK.spd,
+      spd: ATTACK.spd, angle, dmg, pierce, bounces, life: 1.2,
+      type: 'attack', element: ATTACK.element, color: ATTACK.color, size: ATTACK.size, trail: [], hit: [], bounceUsed: 0
+    }, 'life');
+  }
 }
 
 // ===== 弹丸寻的（从 game.js 抽出） =====

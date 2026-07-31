@@ -75,6 +75,24 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
 .crystal-btn:hover { background: rgba(40,60,100,0.9); border-color: #ffcc44; box-shadow: 0 0 10px rgba(255,200,50,0.3); }
 .crystal-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .crystal-btn .cost { color: #ff8844; font-weight: bold; }
+#btn-roll-open { position: absolute; bottom: 20px; right: 20px; z-index: 20; padding: 10px 18px; font-size: 15px; background: linear-gradient(135deg, #2a4a2a, #1a2a1a); color: #ffcc44; border: 2px solid #88cc66; border-radius: 12px; cursor: pointer; pointer-events: auto; box-shadow: 0 0 15px rgba(136,204,102,0.3); }
+#btn-roll-open:hover { background: linear-gradient(135deg, #3a5a3a, #2a3a2a); transform: scale(1.05); }
+#roll-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 150; }
+#roll-overlay.active { display: flex; }
+#roll-title { color: #ffcc44; font-size: 26px; font-weight: bold; margin-bottom: 8px; text-shadow: 0 0 20px rgba(255,200,50,0.5); }
+#roll-subtitle { color: #aab; font-size: 13px; margin-bottom: 20px; }
+#roll-cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; padding: 0 20px; }
+.roll-card { width: 170px; padding: 18px 14px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid rgba(255,255,255,0.2); border-radius: 14px; cursor: pointer; text-align: center; color: #e0d8c0; transition: all 0.2s; }
+.roll-card:hover { border-color: #88cc66; transform: translateY(-4px); box-shadow: 0 8px 30px rgba(136,204,102,0.25); }
+.roll-card .roll-icon { font-size: 36px; margin-bottom: 8px; }
+.roll-card .roll-name { font-size: 15px; font-weight: bold; color: #ffcc44; margin-bottom: 6px; }
+.roll-card .roll-desc { font-size: 11px; color: #aab; line-height: 1.4; }
+#roll-actions { display: flex; gap: 12px; margin-top: 20px; }
+.roll-act-btn { padding: 8px 20px; font-size: 14px; background: rgba(30,40,30,0.85); color: #ffcc44; border: 1px solid rgba(136,204,102,0.5); border-radius: 10px; cursor: pointer; transition: all 0.15s; }
+.roll-act-btn:hover { background: rgba(50,70,50,0.9); border-color: #88cc66; }
+.roll-act-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.roll-act-btn .cost { color: #ff8844; font-weight: bold; }
+@media (max-width: 768px) { #roll-cards { gap: 8px; } .roll-card { width: 120px; padding: 12px 8px; } .roll-card .roll-icon { font-size: 28px; } .roll-card .roll-name { font-size: 13px; } .roll-card .roll-desc { font-size: 10px; } #btn-roll-open { font-size: 13px; padding: 8px 14px; } }
 #def-stats { position: absolute; top: 34px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; z-index: 10; pointer-events: none; }
 .def-item { color: #e0d8c0; font-size: 13px; text-shadow: 0 0 8px rgba(0,0,0,0.8); background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
 .def-item span { color: #ffcc44; font-weight: bold; }
@@ -120,6 +138,17 @@ canvas { display: block; position: absolute; top: 0; left: 0; touch-action: none
   </div>
 </div>
 <div id="def-weapons-bar"></div>
+<button id="btn-roll-open" onclick="window.__openRoll?.()">🎲 Roll 技能</button>
+<div id="roll-overlay">
+  <div id="roll-title">🎲 技能构筑</div>
+  <div id="roll-subtitle">选择 1 张技能卡 · 重抽 🪵2 / 锁定 🪵1</div>
+  <div id="roll-cards"></div>
+  <div id="roll-actions">
+    <button class="roll-act-btn" id="btn-roll-reroll" onclick="window.__rollReroll?.()">🔄 重抽 <span class="cost">🪵2</span></button>
+    <button class="roll-act-btn" id="btn-roll-lock" onclick="window.__rollLock?.()">🔒 锁定 <span class="cost">🪵1</span></button>
+    <button class="roll-act-btn" onclick="window.__closeRoll?.()">✖ 关闭</button>
+  </div>
+</div>
 <div id="defense-banner"></div>
 <div id="defense-end" onclick="if(window.__restartDefense)window.__restartDefense()"><h1 id="defense-end-title">💀 水晶被摧毁！</h1><div class="stats">🌊 波次: <span id="defense-end-wave">0/20</span></div><div class="stats">🕐 时间: <span id="defense-end-time">00:00</span></div><div class="stats">💀 击杀: <span id="defense-end-kills">0</span></div><div class="stats">🪙 金币: <span id="defense-end-gold">0</span></div><div class="stats">🪵 木材: <span id="defense-end-wood">0</span></div><div class="hint">点击重新开始</div></div>
 <script type="module" src="src/main.js"></script>
